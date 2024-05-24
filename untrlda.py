@@ -22,7 +22,50 @@ from scipy.linalg import eigh
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score
 
 
-def un_trlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
+def trace_ratio(A, B, dim, is_max=True):
+    """
+    Solve the Trace Ratio problem: max_{W'*W=I} tr(W'*A*W)/tr(W'*B*W)
+
+    Args:
+        A (numpy array): Symmetric matrix A.
+        B (numpy array): Positive semi-definite matrix B.
+        dim (int): Number of components to retain.
+        is_max (bool, optional): Whether to maximize the trace ratio. Defaults to True.
+
+    Returns:
+        W (numpy array): Projection matrix of shape (n_features, dim).
+        obj (float): Objective value of the trace ratio.
+    """
+    n = A.shape[0]
+    W = np.eye(n, dim)
+    ob = np.trace(W.T @ A @ W) / np.trace(W.T @ B @ W)
+
+    counter = 1
+    obd = 1
+    obj = []
+
+    while obd > 1e-6 and counter < 20:
+        M = A - ob * B
+        M = np.maximum(M, M.T)
+        eigvals, eigvecs = np.linalg.eig(M)
+
+        if is_max:
+            idx = np.argsort(eigvals)[::-1]
+        else:
+            idx = np.argsort(eigvals)
+
+        W = eigvecs[:, idx[:dim]]
+        obd = np.abs(np.sum(eigvals[idx[:dim]]))
+        ob = np.trace(W.T @ A @ W) / np.abs(np.trace(W.T @ B @ W))
+        obj.append(ob)
+        counter += 1
+
+    if counter == 20:
+        print('Warning: the trace ratio did not converge!')
+
+    return W, obj[-1]
+
+def un_trlda(X, c, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
     # describetion need to be changed
     """
     Implement the Un-Regularized Two-Level Discriminant Analysis (Un-TRLDA) algorithm for clustering.
@@ -39,7 +82,7 @@ def un_trlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
         no_pca (bool, optional): Whether to disable PCA initialization. Defaults to False.
 
     Returns:
-        T (numpy array): Un-RTLDA embeddings of shape (n_samples, n_components).
+        T (numpy array): Un-TRLDA embeddings of shape (n_samples, n_components).
         Ypre (list): Cluster assignments for each sample.
         W2 (numpy array): Eigenvectors matrix of shape (n_features, n_components).
     """
@@ -51,7 +94,6 @@ def un_trlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
         H = np.eye(n)
 
     St = X.T @ H @ X  # Compute the within-class scatter matrix St
-    Stt = St + gamma * np.eye(d)  # Add regularization term to St
 
     it = 0  # Initialize the iteration counter
 
@@ -81,7 +123,7 @@ def un_trlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
         obj_old = obj_new
 
         # Calculate the intermediate matrix product
-        T = W2.T @ X.T @ H.T
+        T = (W2.T @ X.T @ H).T
         # T = (fractional_matrix_power(W2.T @ Stt @ W2, -0.5) @ W2.T @ X.T @ H).T
 
         best_obj_tmp = float('inf')
@@ -104,17 +146,15 @@ def un_trlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
         # Compute the between-class scatter matrix Sb
         Sb = X.T @ H @ Yp @ np.linalg.inv(Yp.T @ Yp) @ Yp.T @ H.T @ X
 
-        # 10. Perform generalized eigenvalue decomposition and update W2
-        model = gevd(Sb, Stt)
-        W2 = model['W'][:, -m:]
+        # Perform Trace Ratio optimization and update W2
+        W2, _ = trace_ratio(Sb, St, m)
 
-        # 11. Update the new objective value
-        obj_new = np.trace((W2.T @ Stt @ W2) ** -1 @ W2.T @ Sb @ W2)
+        obj_new = np.trace(W2.T @ Sb @ W2) / np.trace(W2.T @ St @ W2)
 
         obj_log.append(obj_new)
 
     # Print a warning if the algorithm did not converge within maxIter iterations
     if it == max_iter:
-        print(f"Warning: The un_rtlda did not converge within {max_iter} iterations!")
+        print(f"Warning: The un_trlda did not converge within {max_iter} iterations!")
 
     return T, Ypre, W2, obj_log

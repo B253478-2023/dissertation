@@ -49,13 +49,12 @@ def trace_ratio(A, B, dim, is_max=True):
 def un_trlda(X, c, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
     # describetion need to be changed
     """
-    Implement the Un-Regularized Two-Level Discriminant Analysis (Un-TRLDA) algorithm for clustering.
+    Implement the Unsupervised Trace-Ratio Linear Discriminant Analysis (Un-TRLDA) algorithm for clustering.
 
     Args:
         X (numpy array): Input data of shape (n_samples, n_features).
         c (int): Number of clusters.
         Ninit (int, optional): Number of initializations for KMeans. Defaults to 10.
-        gamma (float, optional): Regularization parameter for the within-class scatter matrix. Defaults to 1e-6.
         tol (float, optional): Convergence tolerance. Defaults to 1e-6.
         max_iter (int, optional): Maximum number of iterations. Defaults to 100.
         Ntry (int, optional): Number of attempts to find the best clustering. Defaults to 10.

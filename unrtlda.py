@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-from matplotlib.backends.backend_pdf import PdfPages
 from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans

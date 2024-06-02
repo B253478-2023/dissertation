@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from numpy.linalg import inv, eig
 from scipy.spatial.distance import cdist
@@ -26,7 +27,6 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
 
     if center:
         X = X - np.mean(X, axis=0)  # 中心化处理
-
 
     St = X.T @ X # Compute the total scatter matrix St
 
@@ -62,8 +62,17 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
         obj_old = obj_new
 
         # Update W
-        F = W.T @ X  @ G @ inv(G.T @ G)
-        A = (Lambda**2 - Lambda) * np.eye(d)
+        print(f"Iteration {it}:")
+        print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
+        print(f"X shape: {X.shape}")      # Expecting (n, d)
+        print(f"G shape: {G.shape}")      # Expecting (n, c)
+        print(f"inv(G.T @ G) shape: {inv(G.T @ G).shape}")  # Expecting (c, c)
+        F = W.T @ X.T  @ G @ inv(G.T @ G)
+        print(f"F shape: {F.shape}")     # Expecting (m, c)
+
+        sys.exit()
+
+        A = (Lambda**2 - Lambda) * np.eye(d)  # d x d
         B = Lambda**2 * G @ inv(G.T @ G) @ G.T
         eigvals, eigvecs = eig(X @ (A - B) @ X.T)
         W = eigvecs[:, np.argsort(eigvals)[:m]]

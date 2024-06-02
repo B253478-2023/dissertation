@@ -1,39 +1,42 @@
-import sys
 import numpy as np
-from numpy.linalg import inv, eig
-from scipy.spatial.distance import cdist
+from numpy.linalg import inv
 from sklearn.decomposition import PCA
+from scipy.linalg import eigh
 
+def gevd(A, B):
+    """
+    Generalized eigendecomposition of two symmetric square matrices A and B.
+    
+    Args:
+        A (numpy array): A symmetric square matrix of shape (n, n).
+        B (numpy array): A symmetric square matrix of shape (n, n).
+        
+    Returns:
+        dict: A dictionary containing the sorted eigenvectors ('W') and a diagonal matrix of the sorted eigenvalues ('D').
+    """
+    # Compute the generalized eigenvectors and eigenvalues
+    eigvals, eigvecs = eigh(A, B)
+    
+    # Sort the eigenvalues and eigenvectors in ascending order
+    ind = np.argsort(eigvals)
+    eigvals_sorted = eigvals[ind]
+    eigvecs_sorted = eigvecs[:, ind]
+    
+    # Create a dictionary with the sorted eigenvectors and eigenvalues
+    model = {'W': eigvecs_sorted, 'D': np.diag(eigvals_sorted)}
+    
+    return model
 
 def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
-    """
-    Implement the Self-Weighted Unsupervised Linear Discriminant Analysis (SWULDA) algorithm for clustering.
-
-    Args:
-        X (numpy array): Input data of shape (n_samples, n_features).
-        c (int): Number of clusters.
-        tol (float, optional): Convergence tolerance. Defaults to 1e-6.
-        max_iter (int, optional): Maximum number of iterations. Defaults to 100.
-        center (bool, optional): Whether to center the data. Defaults to True.
-        no_pca (bool, optional): Whether to disable PCA initialization. Defaults to False.
-
-    Returns:
-        T (numpy array): SWULDA embeddings of shape (n_samples, n_components).
-        Ypre (list): Cluster assignments for each sample.
-        W (numpy array): Eigenvectors matrix of shape (n_features, n_components).
-    """
-
-    n, d = X.shape  # Number of samples
+    n, d = X.shape  # Number of samples and features
 
     if center:
-        X = X - np.mean(X, axis=0)  # 中心化处理
-
-    St = X.T @ X # Compute the total scatter matrix St
+        X = X - np.mean(X, axis=0)  # Center the data
 
     it = 0  # Initialize the iteration counter
 
     obj_old = -np.inf  # Initialize the old objective value
-    obj_new = 0.0 # Initialize the new objective value
+    obj_new = 0.0  # Initialize the new objective value
     Ypre = None  # Initialize the predicted cluster labels
     T = None
 
@@ -57,38 +60,47 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
 
     # Iterate until convergence or max_iter is reached
     while (not np.isclose(obj_old, obj_new, atol=tol) or it == 0) and it < max_iter:
-
         it += 1
         obj_old = obj_new
 
-        # Update W
+        # Print shapes before updating W
         print(f"Iteration {it}:")
         print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
         print(f"X shape: {X.shape}")      # Expecting (n, d)
         print(f"G shape: {G.shape}")      # Expecting (n, c)
         print(f"inv(G.T @ G) shape: {inv(G.T @ G).shape}")  # Expecting (c, c)
-        F = W.T @ X.T  @ G @ inv(G.T @ G)
+
+        # Update F
+        F = W.T @ X.T @ G @ inv(G.T @ G)
         print(f"F shape: {F.shape}")     # Expecting (m, c)
 
-        sys.exit()
+        # Compute scatter matrices
+        H = np.eye(n) - (1/n) * np.ones((n, n))  # Centering matrix
+        print(f"H shape: {H.shape}")      # Expecting (n, n)
 
-        A = (Lambda**2 - Lambda) * np.eye(d)  # d x d
-        B = Lambda**2 * G @ inv(G.T @ G) @ G.T
-        eigvals, eigvecs = eig(X @ (A - B) @ X.T)
-        W = eigvecs[:, np.argsort(eigvals)[:m]]
+        Sw = X.T @ H @ X  # Within-class scatter matrix
+        # Sw = (Sw + Sw.T) / 2  # Ensuring symmetry
+        print(f"Sw shape: {Sw.shape}")    # Expecting (d, d)
+
+        Sb = X.T @ H @ G @ inv(G.T @ G) @ G.T @ H @ X  # Between-class scatter matrix
+        # Sb = (Sb + Sb.T) / 2  # Ensuring symmetry
+        print(f"Sb shape: {Sb.shape}")    # Expecting (d, d)
+
+        # Update W using generalized eigenvalue decomposition
+        model = gevd(Sb, Sw)
+        W = model['W'][:, -m:]  # Select top m eigenvectors
+        print(f"W shape: {W.shape}")      # Expecting (d, m)
 
         # Update Lambda
-        FGt = F @ G.T
-        Lambda = np.trace(W.T @ X @ X.T @ W) / (2 * np.linalg.norm(W.T @ X - FGt)**2)
+        FGt = F @ G.T  # Dimension: (m, c) x (c, n) = (m, n)
+        print(f"FGt shape: {FGt.shape}")  # Expecting (m, n)
 
-        # Update G
-        for i in range(n):
-            distances = np.linalg.norm(W.T @ X[i, :, None] - F, axis=0)
-            G[i, :] = 0
-            G[i, np.argmin(distances)] = 1
+        Lambda = np.trace(W.T @ X.T @ X @ W) / (2 * np.linalg.norm(W.T @ X.T - FGt)**2)
+        print(f"Lambda: {Lambda}")
 
         # Check for convergence
-        obj_new = Lambda**2 * np.linalg.norm(W.T @ X - FGt, 'fro')**2 - Lambda * np.trace(W.T @ X @ X.T @ W)
+        obj_new = Lambda**2 * np.linalg.norm(W.T @ X.T - FGt, 'fro')**2 - Lambda * np.trace(W.T @ X.T @ X @ W)
+        obj_log.append(obj_new)
 
     # Calculate embeddings T
     T = X @ W
@@ -96,4 +108,4 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
     # Determine cluster assignments Ypre
     Ypre = np.argmax(G, axis=1).tolist()
 
-    return T, Ypre, W
+    return T, Ypre, W, obj_log

@@ -1,4 +1,5 @@
 import random
+import sys
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -53,7 +54,9 @@ def main():
     T3, G3, W3, _ = swulda(data, n_clusters, max_iter=20, center=True)
 
     print(T3)
-    embeddings["Un-TRLDA"] = {"T": T3, "W": W3, "G": G3}
+    print(G3)
+    print(W3)
+    embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")

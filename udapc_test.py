@@ -21,7 +21,7 @@ def main():
     n_features = 100
     random_state = 1234
     dispersion = 18
-    max_iter=300
+    max_iter=20
 
     random.seed(random_state)
     np.random.seed(random_state)

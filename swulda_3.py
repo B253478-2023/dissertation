@@ -62,13 +62,10 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
         obj_old = obj_new
 
         # Update W
-        XW = X @ W  # n x d @ d x m -> n x m
-        FG_part = XW.T @ G  # m x n @ n x c -> m x c
-        GtG_inv = inv(G.T @ G)  # c x c
-        F = FG_part @ GtG_inv  # m x c @ c x c -> m x c
+        F = W.T @ X  @ G @ inv(G.T @ G)
         A = (Lambda**2 - Lambda) * np.eye(d)
         B = Lambda**2 * G @ inv(G.T @ G) @ G.T
-        eigvals, eigvecs = eig(X.T @ (A - B) @ X)
+        eigvals, eigvecs = eig(X @ (A - B) @ X.T)
         W = eigvecs[:, np.argsort(eigvals)[:m]]
 
         # Update Lambda

@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
 from unrtlda import *
 from untrlda import *
-
+from swulda_3 import *
 
 def main():
 
@@ -47,6 +47,13 @@ def main():
                              center=True)
     print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
+
+    #SWULDA
+    print("\nRunning SWULDA...")
+    T3, G3, W3, _ = swulda(data, n_clusters, max_iter=20, center=True)
+
+    print(T3)
+    embeddings["Un-TRLDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")

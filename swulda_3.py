@@ -1,31 +1,9 @@
+import sys
 import numpy as np
 from numpy.linalg import inv
 from sklearn.decomposition import PCA
 from scipy.linalg import eigh
 
-def gevd(A, B):
-    """
-    Generalized eigendecomposition of two symmetric square matrices A and B.
-    
-    Args:
-        A (numpy array): A symmetric square matrix of shape (n, n).
-        B (numpy array): A symmetric square matrix of shape (n, n).
-        
-    Returns:
-        dict: A dictionary containing the sorted eigenvectors ('W') and a diagonal matrix of the sorted eigenvalues ('D').
-    """
-    # Compute the generalized eigenvectors and eigenvalues
-    eigvals, eigvecs = eigh(A, B)
-    
-    # Sort the eigenvalues and eigenvectors in ascending order
-    ind = np.argsort(eigvals)
-    eigvals_sorted = eigvals[ind]
-    eigvecs_sorted = eigvecs[:, ind]
-    
-    # Create a dictionary with the sorted eigenvectors and eigenvalues
-    model = {'W': eigvecs_sorted, 'D': np.diag(eigvals_sorted)}
-    
-    return model
 
 def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
     n, d = X.shape  # Number of samples and features
@@ -55,6 +33,14 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
     else:
         pca = PCA(n_components=m)
         W = pca.fit(X).components_.T  # W should be d x m
+    
+    print(f"X shape: {X.shape}")      # Expecting (n, d)
+    print(f"n: {n}")
+    print(f"d: {d}")
+    print(f"m: {m}")
+    print(f"c: {c}")
+    print(f"W shape: {W.shape}")  # Expecting (m, d))
+    print(f"G shape: {G.shape}")  # Expecting (n, c))
 
     obj_log = []
 
@@ -66,34 +52,37 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
         # Print shapes before updating W
         print(f"Iteration {it}:")
         print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
-        print(f"X shape: {X.shape}")      # Expecting (n, d)
         print(f"G shape: {G.shape}")      # Expecting (n, c)
-        print(f"inv(G.T @ G) shape: {inv(G.T @ G).shape}")  # Expecting (c, c)
+        print(f"inv(G.T @ G) shape: {np.linalg.pinv(G.T @ G).shape}")  # Expecting (c, c)
+
+        # Update W 
+        A = (Lambda**2 - Lambda) * np.eye(n)
+        print(f"A shape: {A.shape}")  # Expecting (n, n)
+
+        B = Lambda**2 * G @ np.linalg.pinv(G.T @ G) @ G.T
+        print(f"B shape: {B.shape}")  # Expecting (n, n)
+
+        M = X.T @ (A - B) @ X
+        print(f"M shape: {M.shape}")  # Expecting (d, d)
+
+        eigvals, eigvecs = np.linalg.eigh(M)
+        W = eigvecs[:, :m]
+        print(f"W shape: {W.shape}")  # Expecting (d, m)
 
         # Update F
-        F = W.T @ X.T @ G @ inv(G.T @ G)
+        # F = W^T X G (G^T G)^-1
+        F = W.T @ X.T @ G @ np.linalg.pinv(G.T @ G)
         print(f"F shape: {F.shape}")     # Expecting (m, c)
-
-        # Compute scatter matrices
-        H = np.eye(n) - (1/n) * np.ones((n, n))  # Centering matrix
-        print(f"H shape: {H.shape}")      # Expecting (n, n)
-
-        Sw = X.T @ H @ X  # Within-class scatter matrix
-        # Sw = (Sw + Sw.T) / 2  # Ensuring symmetry
-        print(f"Sw shape: {Sw.shape}")    # Expecting (d, d)
-
-        Sb = X.T @ H @ G @ inv(G.T @ G) @ G.T @ H @ X  # Between-class scatter matrix
-        # Sb = (Sb + Sb.T) / 2  # Ensuring symmetry
-        print(f"Sb shape: {Sb.shape}")    # Expecting (d, d)
-
-        # Update W using generalized eigenvalue decomposition
-        model = gevd(Sb, Sw)
-        W = model['W'][:, -m:]  # Select top m eigenvectors
-        print(f"W shape: {W.shape}")      # Expecting (d, m)
 
         # Update Lambda
         FGt = F @ G.T  # Dimension: (m, c) x (c, n) = (m, n)
         print(f"FGt shape: {FGt.shape}")  # Expecting (m, n)
+
+        # Update G
+        for i in range(n):
+            distances = np.linalg.norm(W.T @ X[i, :].reshape(-1, 1) - F, axis=0)
+            G[i, :] = 0
+            G[i, np.argmin(distances)] = 1
 
         Lambda = np.trace(W.T @ X.T @ X @ W) / (2 * np.linalg.norm(W.T @ X.T - FGt)**2)
         print(f"Lambda: {Lambda}")
@@ -104,6 +93,7 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
 
     # Calculate embeddings T
     T = X @ W
+    print(f"T shape: {T.shape}") # Expecting n,m
 
     # Determine cluster assignments Ypre
     Ypre = np.argmax(G, axis=1).tolist()

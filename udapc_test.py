@@ -21,6 +21,7 @@ def main():
     n_features = 100
     random_state = 1234
     dispersion = 18
+    max_iter=300
 
     random.seed(random_state)
     np.random.seed(random_state)
@@ -37,25 +38,22 @@ def main():
 
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
-    T, G, W, _ = un_rtlda(data, n_clusters, Ninit=10, max_iter=20, Ntry=10,
+    T, G, W, _ = un_rtlda(data, n_clusters, Ninit=10, max_iter=max_iter, Ntry=10,
                             center=True, gamma=0.001)
     print(T)
     embeddings["Un-RTLDA"] = {"T": T, "W": W, "G": G}
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA...")
-    T2, G2, W2, _ = un_trlda(data, n_clusters, Ninit=10, max_iter=20, Ntry=10,
+    T2, G2, W2, _ = un_trlda(data, n_clusters, Ninit=10, max_iter=max_iter, Ntry=10,
                              center=True)
     print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
 
     #SWULDA
     print("\nRunning SWULDA...")
-    T3, G3, W3, _ = swulda(data, n_clusters, max_iter=20, center=True)
+    T3, G3, W3, _ = swulda(data, n_clusters, max_iter=max_iter, center=False)
 
-    print(T3)
-    print(G3)
-    print(W3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Call plot_embeddings on simulated data

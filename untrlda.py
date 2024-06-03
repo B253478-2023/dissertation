@@ -28,7 +28,8 @@ def trace_ratio(A, B, dim, is_max=True):
     while obd > 1e-6 and counter < 20:
         M = A - ob * B
         M = np.maximum(M, M.T)
-        eigvals, eigvecs = np.linalg.eig(M)
+        M = (M + M.T) / 2  # Ensure M is symmetric
+        eigvals, eigvecs = np.linalg.eigh(M)
 
         if is_max:
             idx = np.argsort(eigvals)[::-1]

@@ -1,39 +1,20 @@
+import sys
 import numpy as np
-from numpy.linalg import inv, eig
-from scipy.spatial.distance import cdist
+from numpy.linalg import inv
 from sklearn.decomposition import PCA
+from scipy.linalg import eigh
 
 
 def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
-    """
-    Implement the Self-Weighted Unsupervised Linear Discriminant Analysis (SWULDA) algorithm for clustering.
-
-    Args:
-        X (numpy array): Input data of shape (n_samples, n_features).
-        c (int): Number of clusters.
-        tol (float, optional): Convergence tolerance. Defaults to 1e-6.
-        max_iter (int, optional): Maximum number of iterations. Defaults to 100.
-        center (bool, optional): Whether to center the data. Defaults to True.
-        no_pca (bool, optional): Whether to disable PCA initialization. Defaults to False.
-
-    Returns:
-        T (numpy array): SWULDA embeddings of shape (n_samples, n_components).
-        Ypre (list): Cluster assignments for each sample.
-        W (numpy array): Eigenvectors matrix of shape (n_features, n_components).
-    """
-
-    n, d = X.shape  # Number of samples
+    n, d = X.shape  # Number of samples and features
 
     if center:
-        X = X - np.mean(X, axis=0)  # 中心化处理
-
-
-    St = X.T @ X # Compute the total scatter matrix St
+        X = X - np.mean(X, axis=0)  # Center the data
 
     it = 0  # Initialize the iteration counter
 
     obj_old = -np.inf  # Initialize the old objective value
-    obj_new = 0.0 # Initialize the new objective value
+    obj_new = 0.0  # Initialize the new objective value
     Ypre = None  # Initialize the predicted cluster labels
     T = None
 
@@ -52,39 +33,69 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
     else:
         pca = PCA(n_components=m)
         W = pca.fit(X).components_.T  # W should be d x m
+    
+    print(f"X shape: {X.shape}")      # Expecting (n, d)
+    print(f"n: {n}")
+    print(f"d: {d}")
+    print(f"m: {m}")
+    print(f"c: {c}")
+    print(f"W shape: {W.shape}")  # Expecting (m, d))
+    print(f"G shape: {G.shape}")  # Expecting (n, c))
 
     obj_log = []
 
     # Iterate until convergence or max_iter is reached
     while (not np.isclose(obj_old, obj_new, atol=tol) or it == 0) and it < max_iter:
-
         it += 1
         obj_old = obj_new
 
-        # Update W
-        F = W.T @ X  @ G @ inv(G.T @ G)
-        A = (Lambda**2 - Lambda) * np.eye(d)
-        B = Lambda**2 * G @ inv(G.T @ G) @ G.T
-        eigvals, eigvecs = eig(X @ (A - B) @ X.T)
-        W = eigvecs[:, np.argsort(eigvals)[:m]]
+        # Print shapes before updating W
+        print(f"Iteration {it}:")
+        print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
+        print(f"G shape: {G.shape}")      # Expecting (n, c)
+        print(f"inv(G.T @ G) shape: {np.linalg.pinv(G.T @ G).shape}")  # Expecting (c, c)
+
+        # Update W 
+        A = (Lambda**2 - Lambda) * np.eye(n)
+        print(f"A shape: {A.shape}")  # Expecting (n, n)
+
+        B = Lambda**2 * G @ np.linalg.pinv(G.T @ G) @ G.T
+        print(f"B shape: {B.shape}")  # Expecting (n, n)
+
+        M = X.T @ (A - B) @ X
+        print(f"M shape: {M.shape}")  # Expecting (d, d)
+
+        eigvals, eigvecs = np.linalg.eigh(M)
+        W = eigvecs[:, :m]
+        print(f"W shape: {W.shape}")  # Expecting (d, m)
+
+        # Update F
+        # F = W^T X G (G^T G)^-1
+        F = W.T @ X.T @ G @ np.linalg.pinv(G.T @ G)
+        print(f"F shape: {F.shape}")     # Expecting (m, c)
 
         # Update Lambda
-        FGt = F @ G.T
-        Lambda = np.trace(W.T @ X @ X.T @ W) / (2 * np.linalg.norm(W.T @ X - FGt)**2)
+        FGt = F @ G.T  # Dimension: (m, c) x (c, n) = (m, n)
+        print(f"FGt shape: {FGt.shape}")  # Expecting (m, n)
 
         # Update G
         for i in range(n):
-            distances = np.linalg.norm(W.T @ X[i, :, None] - F, axis=0)
+            distances = np.linalg.norm(W.T @ X[i, :].reshape(-1, 1) - F, axis=0)
             G[i, :] = 0
             G[i, np.argmin(distances)] = 1
 
+        Lambda = np.trace(W.T @ X.T @ X @ W) / (2 * np.linalg.norm(W.T @ X.T - FGt)**2)
+        print(f"Lambda: {Lambda}")
+
         # Check for convergence
-        obj_new = Lambda**2 * np.linalg.norm(W.T @ X - FGt, 'fro')**2 - Lambda * np.trace(W.T @ X @ X.T @ W)
+        obj_new = Lambda**2 * np.linalg.norm(W.T @ X.T - FGt, 'fro')**2 - Lambda * np.trace(W.T @ X.T @ X @ W)
+        obj_log.append(obj_new)
 
     # Calculate embeddings T
     T = X @ W
+    print(f"T shape: {T.shape}") # Expecting n,m
 
     # Determine cluster assignments Ypre
     Ypre = np.argmax(G, axis=1).tolist()
 
-    return T, Ypre, W
+    return T, Ypre, W, obj_log

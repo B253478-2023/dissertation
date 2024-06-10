@@ -12,6 +12,7 @@ from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, s
 from unrtlda import *
 from untrlda import *
 from swulda_3 import *
+from unrtcdlda import *
 
 def main():
 
@@ -55,6 +56,13 @@ def main():
     T3, G3, W3, _ = swulda(data, n_clusters, max_iter=max_iter, center=False)
 
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
+
+    # Un-RT(CD)LDA
+    print("\nRunning Un-RT(CD)LDA...")
+    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=10, max_iter=max_iter, Ntry=10,
+                             center=True,cd_clustering=True)
+    print(T4)
+    embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")

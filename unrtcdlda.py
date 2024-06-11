@@ -3,69 +3,80 @@ import scipy
 from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-from scipy.linalg import eigh
 
 
-def coordinate_descent_clustering(AA, num_clusters, atol=1e-6, max_iter=100):
-    n = AA.shape[0]
-    GG = np.zeros((n, num_clusters))  # Initialize the cluster indicator matrix
+def coordinate_descent_clustering(A, num_clusters, atol=1e-6, max_iter=100):
+    """
+    Perform coordinate descent clustering.
 
-    # Initialize GG with each point assigned to a cluster in a round-robin manner
+    Parameters:
+    A: np.ndarray
+        The input squared matrix of shape (n, n).
+    num_clusters: int
+        The number of clusters (c).
+    atol: float, optional
+        Absolute tolerance for convergence. Default is 1e-6.
+    max_iter: int, optional
+        Maximum number of iterations. Default is 100.
+
+    Returns:
+    np.ndarray
+        The optimal cluster indicator matrix G.
+    """
+
+    n = A.shape[0]
+    c = num_clusters
+
+    # Randomly initialize the cluster indicator matrix G
+    G = np.zeros((n, c))
     for i in range(n):
-        GG[i, i % num_clusters] = 1
+        G[i, np.random.randint(0, c)] = 1
 
-    def compute_precomputed_values(GG, AA, num_clusters):
-        GGTAAGG = np.array([GG[:, k].T @ AA @ GG[:, k] for k in range(num_clusters)])
-        GGTGG = np.array([GG[:, k].T @ GG[:, k] for k in range(num_clusters)])
-        return GGTAAGG, GGTGG
+    # Computing g_l^T A g_l  and g_l^T g_l for all l = 1, 2, ..., c
+    g_A_g = [G[:, l].T @ A @ G[:, l] for l in range(c)]
+    g_g = [G[:, l].T @ G[:, l] for l in range(c)]
 
-    precomputed_values = {
-        'GGTAAGG': np.array([GG[:, k].T @ AA @ GG[:, k] for k in range(num_clusters)]),
-        'GGTGG': np.array([GG[:, k].T @ GG[:, k] for k in range(num_clusters)])
-    }
+    for iter_num in range(max_iter):
+        G_old = G.copy()
 
-    convergence = False
-    iter_count = 0
-
-    while not convergence and iter_count < max_iter:
-        GG_new = np.zeros_like(GG)
-        convergence = True
         for i in range(n):
-            max_obj_value = -np.inf
-            best_cluster_idx = -1
+            m = np.argmax(G[i, :])  # Record the cluster index m
 
-            for k in range(num_clusters):
-                temp_gg = GG.copy()
-                temp_gg[i, :] = 0
-                temp_gg[i, k] = 1
+            if sum(G[:, m]) == 1:
+                continue  # If the ith row is the only 1 in the m-th column, continue
 
-                # Calculate the objective value
-                GGTAAGG_t = temp_gg[:, k].T @ AA @ temp_gg[:, k]
-                GGTGG_t = temp_gg[:, k].T @ temp_gg[:, k]
-                if GGTGG_t == 0:
-                    GGTGG_t = 1e-10  # To avoid division by zero
+            # Generate G^(0)
+            G_0 = G.copy()
+            G_0[i, :] = 0
 
-                obj_value = GGTAAGG_t / GGTGG_t
+            D = np.zeros(c)
+            for k in range(c):
+                G_k = G_0.copy()
+                G_k[i, k] = 1
 
-                if obj_value > max_obj_value:
-                    max_obj_value = obj_value
-                    best_cluster_idx = k
+                if k == m:
+                    g_k_A_g_k = g_A_g[m]
+                    g_k_g_k_0 = g_g[m] - 1
+                else:
+                    g_k_A_g_k = g_A_g[k] + 2 * (G[:, k].T @ A[i, :] - A[i, i])
+                    g_k_g_k_0 = g_g[k] + 1
 
-            # Assign point i to the best cluster
-            GG_new[i, best_cluster_idx] = 1
+                D[k] = (g_k_A_g_k / g_k_g_k_0) - (g_A_g[m] / (g_g[m] - 1))
 
-        # Check for convergence
-        if not np.allclose(GG, GG_new, atol):
-            convergence = False
+            best_k = np.argmax(D)
 
-        # Update GG
-        GG = GG_new.copy()
-        iter_count += 1
+            if best_k != m:
+                G[i, :] = 0
+                G[i, best_k] = 1
+                g_g[best_k] += 1
+                g_g[m] -= 1
+                g_A_g[best_k] += 2 * (G[:, best_k].T @ A[i, :] - A[i, i])
+                g_A_g[m] -= 2 * (G[:, m].T @ A[i, :] - A[i, i])
 
-        # Recompute GGTAAGG and GGTGG values
-        precomputed_values['GGTAAGG'], precomputed_values['GGTGG'] = compute_precomputed_values(GG, AA, num_clusters)
+        if np.linalg.norm(G - G_old) < atol:
+            break
 
-    return GG
+    return G
 
 
 def gevd(A, B):
@@ -141,7 +152,7 @@ def un_rt_cd_lda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, ce
     else:
         W = pca.fit_transform(X.T)
     W2 = W  # Initialize W2 with W
-    print(f'W2 shape: {W2.shape}')
+    #print(f'W2 shape: {W2.shape}')
     obj_log = []
 
     # Iterate until convergence or maxIter is reached
@@ -153,16 +164,16 @@ def un_rt_cd_lda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, ce
         # Calculate the intermediate matrix product
         T = (scipy.linalg.expm(-0.5 * np.linalg.inv(W2.T @ Stt @ W2)) @ W2.T @ X.T).T
         # T = (fractional_matrix_power(W2.T @ Stt @ W2, -0.5) @ W2.T @ X.T @ H).T
-        print(f'T shape: {T.shape}')
+        #print(f'T shape: {T.shape}')
         best_obj_tmp = float('inf')
         best_Ypre = None
 
         if cd_clustering:
 
             intermediate = np.linalg.inv(W2.T @ X.T @ X @ W2)
-            print(f"intermediate shape: {intermediate.shape}")  # Expecting (m, m)
+            #print(f"intermediate shape: {intermediate.shape}")  # Expecting (m, m)
             AA = X @ W2 @ intermediate @ W2.T @ X.T
-            print(f"AA shape: {AA.shape}") # Expecting (n, n)
+            #print(f"AA shape: {AA.shape}") # Expecting (n, n)
             GG = coordinate_descent_clustering(AA, atol=tol, num_clusters=c, max_iter=max_iter)
             Ypre = np.argmax(GG, axis=1)
         else:
@@ -179,18 +190,18 @@ def un_rt_cd_lda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, ce
 
         # Update Yp matrix
         Yp = np.eye(c)[Ypre]
-        print(f"Yp shape: {Yp.shape}")  # Expecting (n, c)
-        print(Yp)
+        #print(f"Yp shape: {Yp.shape}")  # Expecting (n, c)
+        #print(Yp)
         # Compute the between-class scatter matrix Sb
         Sb = X.T @ Yp @ np.linalg.inv(Yp.T @ Yp) @ Yp.T @ X
 
-        print(f"Sb shape: {Sb.shape}")  # Expecting (d, d)
+        #print(f"Sb shape: {Sb.shape}")  # Expecting (d, d)
 
         # Perform generalized eigenvalue decomposition and update W2
         model = gevd(Sb, Stt)
         W2 = model['W'][:, -m:]
         # Print shapes
-        print(f"W2 shape: {W2.shape}")  # Expecting (d, min(d, c-1))
+        #print(f"W2 shape: {W2.shape}")  # Expecting (d, min(d, c-1))
 
         # Update the new objective value
         obj_new = np.trace((W2.T @ Stt @ W2) ** -1 @ W2.T @ Sb @ W2)

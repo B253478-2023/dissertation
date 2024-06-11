@@ -13,6 +13,7 @@ from unrtlda import *
 from untrlda import *
 from swulda_3 import *
 from unrtcdlda import *
+from untrcdlda import *
 
 def main():
 
@@ -64,13 +65,20 @@ def main():
     print(T4)
     embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
+    # Un-TR(CD)LDA
+    print("\nRunning Un-TR(CD)LDA...")
+    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=10, max_iter=max_iter, Ntry=10,
+                                 center=True, cd_clustering=True)
+    print(T4)
+    embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
+
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
     plot_embeddings(embeddings, data, labels)
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
-    print_metrics(embeddings, labels)
+    print_metrics(embeddings, labels, file_name='n_clusters = 4_results.txt')
 
 
 # legend not working
@@ -142,7 +150,7 @@ def plot_embeddings(embeddings, dataset, labels,
     plt.close(fig)
 
 
-def print_metrics(embeddings, labels):
+def print_metrics(embeddings, labels, file_name="metrics_results.txt"):
     """
     Calculate and print various clustering metrics for multiple embeddings.
 
@@ -181,6 +189,9 @@ def print_metrics(embeddings, labels):
     results_df = pd.DataFrame(results, index=embedding_names).T
     print(results_df)
 
+    # Export to txt file
+    with open(file_name, 'w') as f:
+        f.write(results_df.to_string())
 
 def generate_synthetic_data(n_samples=1000, n_clusters=4, n_features=50,
                             random_state=None, dispersion=1):

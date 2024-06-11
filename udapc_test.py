@@ -19,7 +19,7 @@ def main():
 
     # Generate synthetic data
     n_samples = 1000
-    n_clusters = 4
+    n_clusters = 9
     n_features = 100
     random_state = 1234
     dispersion = 18
@@ -55,30 +55,30 @@ def main():
     #SWULDA
     print("\nRunning SWULDA...")
     T3, G3, W3, _ = swulda(data, n_clusters, max_iter=max_iter, center=False)
-
+    print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Un-RT(CD)LDA
     print("\nRunning Un-RT(CD)LDA...")
-    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=10, max_iter=max_iter, Ntry=10,
+    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=10, max_iter=100, Ntry=10,
                              center=True,cd_clustering=True)
     print(T4)
     embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
     # Un-TR(CD)LDA
     print("\nRunning Un-TR(CD)LDA...")
-    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=10, max_iter=max_iter, Ntry=10,
+    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=10, max_iter=100, Ntry=10,
                                  center=True, cd_clustering=True)
-    print(T4)
+    print(T5)
     embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
-    plot_embeddings(embeddings, data, labels)
+    plot_embeddings(embeddings, data, labels, filename="embeddings_plots_c=9_maxiter=100.pdf")
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
-    print_metrics(embeddings, labels, file_name='n_clusters = 4_results.txt')
+    print_metrics(embeddings, labels, file_name='n_clusters = 9_max_iter = 100_results.txt')
 
 
 # legend not working

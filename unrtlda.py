@@ -34,7 +34,7 @@ def gevd(A, B):
 # Define the Un-RTLDA function
 def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
     """
-    Implement the Un-Regularized Two-Level Discriminant Analysis (Un-RTLDA) algorithm for clustering.
+    Implement the Unsupervised Ratio-Trade Linear Discriminant Analysis (Un-RTLDA) algorithm for clustering.
 
     Args:
         X (numpy array): Input data of shape (n_samples, n_features).

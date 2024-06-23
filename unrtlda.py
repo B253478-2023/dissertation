@@ -118,7 +118,9 @@ def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
         W2 = model['W'][:, -m:]
 
         # Update the new objective value
-        obj_new = np.trace((W2.T @ Stt @ W2) ** -1 @ W2.T @ Sb @ W2)
+        #obj_new = np.trace((W2.T @ Stt @ W2) ** -1 @ W2.T @ Sb @ W2)
+        pinv_term = np.linalg.pinv(W2.T @ Stt @ W2)
+        obj_new = np.trace(pinv_term @ W2.T @ Sb @ W2)
 
         obj_log.append(obj_new)
 

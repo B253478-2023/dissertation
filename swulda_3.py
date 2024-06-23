@@ -34,13 +34,13 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
         pca = PCA(n_components=m)
         W = pca.fit(X).components_.T  # W should be d x m
     
-    print(f"X shape: {X.shape}")      # Expecting (n, d)
-    print(f"n: {n}")
-    print(f"d: {d}")
-    print(f"m: {m}")
-    print(f"c: {c}")
-    print(f"W shape: {W.shape}")  # Expecting (m, d))
-    print(f"G shape: {G.shape}")  # Expecting (n, c))
+    #print(f"X shape: {X.shape}")      # Expecting (n, d)
+    #print(f"n: {n}")
+    #print(f"d: {d}")
+    #print(f"m: {m}")
+    #print(f"c: {c}")
+    #print(f"W shape: {W.shape}")  # Expecting (m, d))
+    #print(f"G shape: {G.shape}")  # Expecting (n, c))
 
     obj_log = []
 
@@ -50,33 +50,33 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
         obj_old = obj_new
 
         # Print shapes before updating W
-        print(f"Iteration {it}:")
-        print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
-        print(f"G shape: {G.shape}")      # Expecting (n, c)
-        print(f"inv(G.T @ G) shape: {np.linalg.pinv(G.T @ G).shape}")  # Expecting (c, c)
+        #print(f"Iteration {it}:")
+        #print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
+        #print(f"G shape: {G.shape}")      # Expecting (n, c)
+        #print(f"inv(G.T @ G) shape: {np.linalg.pinv(G.T @ G).shape}")  # Expecting (c, c)
 
         # Update W 
         A = (Lambda**2 - Lambda) * np.eye(n)
-        print(f"A shape: {A.shape}")  # Expecting (n, n)
+        #print(f"A shape: {A.shape}")  # Expecting (n, n)
 
         B = Lambda**2 * G @ np.linalg.pinv(G.T @ G) @ G.T
-        print(f"B shape: {B.shape}")  # Expecting (n, n)
+        #print(f"B shape: {B.shape}")  # Expecting (n, n)
 
         M = X.T @ (A - B) @ X
-        print(f"M shape: {M.shape}")  # Expecting (d, d)
+        #print(f"M shape: {M.shape}")  # Expecting (d, d)
 
         eigvals, eigvecs = np.linalg.eigh(M)
         W = eigvecs[:, :m]
-        print(f"W shape: {W.shape}")  # Expecting (d, m)
+        #print(f"W shape: {W.shape}")  # Expecting (d, m)
 
         # Update F
         # F = W^T X G (G^T G)^-1
         F = W.T @ X.T @ G @ np.linalg.pinv(G.T @ G)
-        print(f"F shape: {F.shape}")     # Expecting (m, c)
+        #print(f"F shape: {F.shape}")     # Expecting (m, c)
 
         # Update Lambda
         FGt = F @ G.T  # Dimension: (m, c) x (c, n) = (m, n)
-        print(f"FGt shape: {FGt.shape}")  # Expecting (m, n)
+        #print(f"FGt shape: {FGt.shape}")  # Expecting (m, n)
 
         # Update G
         for i in range(n):
@@ -85,7 +85,7 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
             G[i, np.argmin(distances)] = 1
 
         Lambda = np.trace(W.T @ X.T @ X @ W) / (2 * np.linalg.norm(W.T @ X.T - FGt)**2)
-        print(f"Lambda: {Lambda}")
+        #print(f"Lambda: {Lambda}")
 
         # Check for convergence
         obj_new = Lambda**2 * np.linalg.norm(W.T @ X.T - FGt, 'fro')**2 - Lambda * np.trace(W.T @ X.T @ X @ W)
@@ -93,7 +93,7 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
 
     # Calculate embeddings T
     T = X @ W
-    print(f"T shape: {T.shape}") # Expecting n,m
+    #print(f"T shape: {T.shape}") # Expecting n,m
 
     # Determine cluster assignments Ypre
     Ypre = np.argmax(G, axis=1).tolist()

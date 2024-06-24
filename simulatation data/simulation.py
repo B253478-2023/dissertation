@@ -92,11 +92,10 @@ def main():
     #Steppingstonedata.to_csv("Steppingstonedata.csv")
     #Hiersteppingstonedata.to_csv("Hiersteppingstonedata.csv")
     #Islanddata = Islanddata.values
-    Islanddata = pd.read_csv('Islanddata_Qin.csv')
-    Islanddata = Islanddata.values
-    HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv')
-    Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv')
-    Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv')
+    Islanddata = pd.read_csv('Islanddata_Qin.csv').values
+    HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv').values
+    Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv').values
+    Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
     n_clusters = 16
     max_iter = 100
 

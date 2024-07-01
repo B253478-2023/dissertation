@@ -1,6 +1,0 @@
-                               Un-RTLDA  Un-TRLDA    SWULDA  Un-RT(CD)LDA  Un-TR(CD)LDA
-Adjusted Rand Index            0.883672  0.883777  0.877713      0.005861      0.100068
-Normalized Mutual Information  0.871542  0.874913  0.867428      0.031080      0.193079
-Silhouette Score               0.328192  0.325318  0.310818     -0.090521     -0.021954
-Fowlkes-Mallows Index          0.896497  0.896594  0.891197      0.207006      0.334810
-Completeness Score             0.871595  0.875014  0.867500      0.042271      0.353339

@@ -193,7 +193,7 @@ def print_metrics(embeddings, labels, filename="metrics_results.txt"):
     print(results_df)
 
     # Export to txt file
-    with open(file_name, 'w') as f:
+    with open(filename, 'w') as f:
         f.write(results_df.to_string())
 
 def generate_synthetic_data(n_samples=1000, n_clusters=4, n_features=50,

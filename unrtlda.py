@@ -6,14 +6,13 @@ from sklearn.cluster import KMeans
 from scipy.linalg import eigh
 
 
-def gevd(A, B):
+def gevd(A, B, is_max=True):
     """
     Generalized eigendecomposition of two symmetric square matrices A and B.
     
     Args:
         A (numpy array): A symmetric square matrix of shape (n, n).
         B (numpy array): A symmetric square matrix of shape (n, n).
-        
     Returns:
         dict: A dictionary containing the sorted eigenvectors ('W') and a diagonal matrix of the sorted eigenvalues ('D').
     """
@@ -21,8 +20,13 @@ def gevd(A, B):
     eigvals, eigvecs = eigh(A, B)
     
     # Sort the eigenvalues and eigenvectors in ascending order
-    ind = np.argsort(eigvals)
+    if is_max:
+        ind = np.argsort(eigvals)[::-1]
+    else:
+        ind = np.argsort(eigvals)
+
     eigvals_sorted = eigvals[ind]
+    eigvals_sorted
     eigvecs_sorted = eigvecs[:, ind]
     
     # Create a dictionary with the sorted eigenvectors and eigenvalues
@@ -32,7 +36,8 @@ def gevd(A, B):
 
 
 # Define the Un-RTLDA function
-def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
+def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100,
+             Ntry=10, center=True, no_pca=False):
     """
     Implement the Unsupervised Ratio-Trade Linear Discriminant Analysis (Un-RTLDA) algorithm for clustering.
 
@@ -115,7 +120,7 @@ def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
 
         # Perform generalized eigenvalue decomposition and update W2
         model = gevd(Sb, Stt)
-        W2 = model['W'][:, -m:]
+        W2 = model['W'][:, :m]
 
         # Update the new objective value
         #obj_new = np.trace((W2.T @ Stt @ W2) ** -1 @ W2.T @ Sb @ W2)

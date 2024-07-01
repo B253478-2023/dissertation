@@ -25,6 +25,9 @@ def main():
     dispersion = 18
     max_iter=20
 
+    # generation base filename 
+    base = f"c{n_clusters}_it{max_iter}_disp{dispersion}"
+
     random.seed(random_state)
     np.random.seed(random_state)
 
@@ -74,11 +77,11 @@ def main():
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
-    plot_embeddings(embeddings, data, labels, filename="embeddings_plots_c=9_maxiter=100.pdf")
+    plot_embeddings(embeddings, data, labels, filename=f"{base}.pdf")
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
-    print_metrics(embeddings, labels, file_name='n_clusters = 9_max_iter = 100_results.txt')
+    print_metrics(embeddings, labels, filename=f"{base}.txt")
 
 
 # legend not working
@@ -150,7 +153,7 @@ def plot_embeddings(embeddings, dataset, labels,
     plt.close(fig)
 
 
-def print_metrics(embeddings, labels, file_name="metrics_results.txt"):
+def print_metrics(embeddings, labels, filename="metrics_results.txt"):
     """
     Calculate and print various clustering metrics for multiple embeddings.
 

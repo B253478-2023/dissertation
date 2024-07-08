@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from scipy.linalg import eigh
 
 
-def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
+def swulda(X, c, Npc, tol=1e-6, max_iter=100, center=True, no_pca=False):
     n, d = X.shape  # Number of samples and features
 
     if center:
@@ -27,7 +27,8 @@ def swulda(X, c, tol=1e-6, max_iter=100, center=True, no_pca=False):
     Lambda = np.random.rand()
 
     # Initialize W using PCA
-    m = min(d, c - 1)
+    #m = min(d, c - 1, Npc)
+    m = Npc
     if no_pca:
         W = np.random.rand(d, m)  # Random initialization
     else:

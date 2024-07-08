@@ -32,7 +32,7 @@ def gevd(A, B):
 
 
 # Define the Un-RTLDA function
-def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
+def un_rtlda(X, c, Npc, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
     """
     Implement the Unsupervised Ratio-Trade Linear Discriminant Analysis (Un-RTLDA) algorithm for clustering.
 
@@ -72,7 +72,8 @@ def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center
     T = None
 
     # Initialize W using PCA 
-    m = min(d, c - 1)
+    #m = min(d, c - 1, Npc)
+    m = Npc
     pca = PCA(n_components=m)
 
     if no_pca:

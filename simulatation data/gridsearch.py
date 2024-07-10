@@ -18,13 +18,11 @@ from untrlda import *
 from swulda_3 import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
+#from unkfdapc import *
 def read_gene(genepop_file):
-    # 读取Genepop文件
     with open(genepop_file) as f:
         Island_1 = read(f)
 
-    # 计算行数（即个体总数）
     num_individuals = sum(len(pop) for pop in Island_1.populations)
 
     # 提取所有的locus和alleles
@@ -39,16 +37,13 @@ def read_gene(genepop_file):
                 locus_name = f'locus{i+1}'
                 loci_alleles[locus_name].update(allele_pair)
 
-    # 创建列名
     columns = []
     for locus, alleles in loci_alleles.items():
         for allele in sorted(alleles):
             columns.append(f'{locus}.{allele}')
 
-    # 初始化 DataFrame
     data = pd.DataFrame(0, index=range(num_individuals), columns=columns)
 
-    # 初始化种群数组
     pop_array = np.zeros(num_individuals, dtype=int)
     pop_index = 0
     # 填充数据
@@ -98,7 +93,7 @@ def main():
     Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
     n_clusters = 16
     max_iter = 100
-    k_range = range(2,17)
+    k_range =[16]
     Npc_range = range(10,51)
     grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter,method='un_rtlda')
     grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, method='un_trlda')

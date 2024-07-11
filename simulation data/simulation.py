@@ -18,7 +18,7 @@ from untrlda import *
 from swulda_3 import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
+# unkfdapc import *
 def read_gene(genepop_file):
     # 读取Genepop文件
     with open(genepop_file) as f:
@@ -82,64 +82,61 @@ def normalize(x):
     return (x - np.min(x)) / (np.max(x) - np.min(x))
 
 def main():
-    Islanddata,labels = read_gene("16PopIsland_1_1.gen")
-    #HierIslanddata,_ = read_gene("16PopHierISland_1_1.gen")
-    #Steppingstonedata,_ = read_gene("16PopSteppingstone_1_1.gen")
-    #Hiersteppingstonedata,_ = read_gene("16PopHiersteppingstone_1_1.gen")
 
-    #Islanddata.to_csv("Islanddata.csv")
-    #HierIslanddata.to_csv("HierIslanddata.csv")
-    #Steppingstonedata.to_csv("Steppingstonedata.csv")
-    #Hiersteppingstonedata.to_csv("Hiersteppingstonedata.csv")
-    #Islanddata = Islanddata.values
+    n_groups = 16
+    group_size = 30
+    labels = np.repeat(np.arange(1, n_groups + 1), group_size)
     Islanddata = pd.read_csv('Islanddata_Qin.csv').values
     HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv').values
     Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv').values
     Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
+
+
     n_clusters = 16
+    Npc = 16
     max_iter = 100
 
-    #test(Islanddata, labels, n_clusters, max_iter, 'Islanddata')
-    test(HierIslanddata, labels, n_clusters, max_iter, 'HierIslanddata')
-    test(Steppingstonedata, labels, n_clusters, max_iter, 'Steppingstonedata')
-    test(Hiersteppingstonedata, labels, n_clusters, max_iter, 'Hiersteppingstonedata')
-def test(data,labels,n_clusters,max_iter,datetype):
+    test(Islanddata, labels, n_clusters, Npc, max_iter, 'Islanddata')
+    test(HierIslanddata, labels, n_clusters, Npc, max_iter, 'HierIslanddata')
+    test(Steppingstonedata, labels, n_clusters, Npc, max_iter, 'Steppingstonedata')
+    test(Hiersteppingstonedata, labels, n_clusters, Npc, max_iter, 'Hiersteppingstonedata')
+def test(data,labels,n_clusters,Npc,max_iter,datetype):
 
     embeddings = {}
 
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
-    T, G, W, _ = un_rtlda(data, n_clusters, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+    T, G, W, _ = un_rtlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                             center=True, gamma=1e-6)
     print(T)
     embeddings["Un-RTLDA"] = {"T": T, "W": W, "G": G}
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA...")
-    T2, G2, W2, _ = un_trlda(data, n_clusters, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+    T2, G2, W2, _ = un_trlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                              center=True)
     print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
 
     #SWULDA
     print("\nRunning SWULDA...")
-    T3, G3, W3, _ = swulda(data, n_clusters, tol=1e-6, max_iter=max_iter, center=False)
+    T3, G3, W3, _ = swulda(data, n_clusters, Npc=Npc, tol=1e-6, max_iter=max_iter, center=False)
     print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Un-RT(CD)LDA
-    print("\nRunning Un-RT(CD)LDA...")
-    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-                             center=True,cd_clustering=True)
-    print(T4)
-    embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
+    #print("\nRunning Un-RT(CD)LDA...")
+    #T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+    #                         center=True,cd_clustering=True)
+    #print(T4)
+    #embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
     # Un-TR(CD)LDA
-    print("\nRunning Un-TR(CD)LDA...")
-    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=100, max_iter=max_iter, Ntry=10,
-                                 center=True, cd_clustering=True)
-    print(T5)
-    embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
+    #print("\nRunning Un-TR(CD)LDA...")
+    #T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, max_iter=max_iter, Ntry=10,
+    #                             center=True, cd_clustering=True)
+    #print(T5)
+    #embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
     #print("\nRunning Un-KFDAPC...")
     #T6, G6, W6, _ = unkfdapc(data, n_clusters, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=max_iter, Ntry=10, center=True, no_pca=False, alpha=0.5, beta=0.5, sigma=1.0,

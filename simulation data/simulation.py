@@ -13,8 +13,11 @@ from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
+from unlda import *
 from unrtlda import *
+from unrtlda_a import *
 from untrlda import *
+from untrlda_a import *
 from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
@@ -104,6 +107,13 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
 
     embeddings = {}
 
+    # Apply Un-LDA and obtain the reduced-dimensional representation and cluster assignments
+    print("\nRunning Un-LDA...")
+    T0, G0, W0, _ = un_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                          center=True, gamma=1e-6)
+    print(T0)
+    embeddings["Un-LDA"] = {"T": T0, "W": W0, "G": G0}
+
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
     T, G, W, _ = un_rtlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
@@ -144,13 +154,26 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
     #print(T6)
     #embeddings["Un-KFDAPC"] = {"T": T6, "W": W6, "G": G6}
 
+    print("\nRunning Un-RTLDA_A...")
+    T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                          center=True, gamma=1e-6)
+    print(T7)
+    embeddings["Un-RTLDA_A"] = {"T": T7, "W": W7, "G": G7}
+
+    # Un-TRLDA
+    print("\nRunning Un-TRLDA_A...")
+    T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                             center=True)
+    print(T8)
+    embeddings["Un-TRLDA_A"] = {"T": T8, "W": W8, "G": G8}
+
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
-    plot_embeddings(embeddings, data, labels, filename=f"{datetype}_maxiter={max_iter}.pdf")
+    plot_embeddings(embeddings, data, labels, filename=f"{datetype}_maxiter={max_iter}_test_a.pdf")
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
-    print_metrics(embeddings, labels, file_name=f'{datetype}_maxiter={max_iter}_results.txt')
+    print_metrics(embeddings, labels, file_name=f'{datetype}_maxiter={max_iter}_results_test_a.txt')
 
 
 # legend not working

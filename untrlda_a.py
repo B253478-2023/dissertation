@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-
+from sklearn.cluster import AgglomerativeClustering
 
 def trace_ratio(A, B, dim, is_max=True):
     """
@@ -47,7 +47,7 @@ def trace_ratio(A, B, dim, is_max=True):
 
     return W, obj[-1]
 
-def un_trlda(X, c, Npc, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
+def un_trlda_a(X, c, Npc, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
     # describetion need to be changed
     """
     Implement the Unsupervised Trace-Ratio Linear Discriminant Analysis (Un-TRLDA) algorithm for clustering.

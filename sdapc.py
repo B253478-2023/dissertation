@@ -22,7 +22,7 @@ def initialize_r_environment():
             mat <- tab(dat, NA.method="mean")
             n_pca_seq <- seq(n_pca_min, n_pca_max, by=n_pca_interval)
             cx <- xvalDapc(mat, grp, n.pca.max = n_pca_max, training.set = 0.8,
-                           result = "groupMean", center = TRUE, scale = TRUE,
+                           result = "groupMean", center = TRUE, scale = FALSE,
                            n.pca = n_pca_seq, n.rep = 30, xval.plot = FALSE)
             
             pc_retain <- as.numeric(as.vector(names(cx[5][[1]])))[which.min(unlist(cx[5]))]
@@ -68,11 +68,11 @@ def sdapc(X, labels=None, prop_pc_var=0.5, max_n_clust=20, n_pca_min=20, n_pca_m
     semi_pov = semi_dapc_result.rx2('pov')
     print(semi_pov)
     
-    T_semi = np.array(semi_dapc.rx2('tab'))
+    T_semi = np.array(semi_dapc.rx2('ind.coord'))
     G_semi = np.array(semi_dapc.rx2('grp'))
     W_semi = None
 
-    embeddings["Semisupervised-DAPC"] = {"T": T_semi.T, "W": W_semi, "G": G_semi}
+    embeddings["Semisupervised-DAPC"] = {"T": T_semi, "W": W_semi, "G": G_semi}
     
     # Supervised DAPC (using provided labels)
     if labels is not None:
@@ -85,10 +85,10 @@ def sdapc(X, labels=None, prop_pc_var=0.5, max_n_clust=20, n_pca_min=20, n_pca_m
         supervised_pov = supervised_dapc_result.rx2('pov')
         print(supervised_pov)
         
-        T_sup = np.array(supervised_dapc.rx2('tab'))
+        T_sup = np.array(supervised_dapc.rx2('ind.coord'))
         G_sup = np.array(supervised_dapc.rx2('grp'))
         W_sup = None
         
-        embeddings["Supervised-DAPC"] = {"T": T_sup.T, "W": W_sup, "G": G_sup}
+        embeddings["Supervised-DAPC"] = {"T": T_sup, "W": W_sup, "G": G_sup}
     
     return embeddings

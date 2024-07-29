@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+from Bio.PopGen.GenePop import read
+from collections import defaultdict
 import random
 import sys
 import pandas as pd
@@ -9,89 +13,147 @@ from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
-from unrtlda_a import *
-from untrlda_a import *
-from swulda import *
+from unrtlda import *
+from untrlda import *
+from swulda_3 import *
+from unrtcdlda import *
+from untrcdlda import *
 from unkfdapc import *
-from sdapc import *
+def read_gene(genepop_file):
+    # 读取Genepop文件
+    with open(genepop_file) as f:
+        Island_1 = read(f)
+
+    # 计算行数（即个体总数）
+    num_individuals = sum(len(pop) for pop in Island_1.populations)
+
+    # 提取所有的locus和alleles
+    loci_alleles = defaultdict(set)
+    for pop in Island_1.populations:
+        #print('pop:', pop)
+        for ind in pop:
+            #print('ind:', ind)
+            for i, allele_pair in enumerate(ind[1]):
+                #print('i:', i)
+                #print('allele_pair:', allele_pair)
+                locus_name = f'locus{i+1}'
+                loci_alleles[locus_name].update(allele_pair)
+
+    # 创建列名
+    columns = []
+    for locus, alleles in loci_alleles.items():
+        for allele in sorted(alleles):
+            columns.append(f'{locus}.{allele}')
+
+    # 初始化 DataFrame
+    data = pd.DataFrame(0, index=range(num_individuals), columns=columns)
+
+    # 初始化种群数组
+    pop_array = np.zeros(num_individuals, dtype=int)
+    pop_index = 0
+    # 填充数据
+    row_index = 0
+    for pop in Island_1.populations:
+        #print('pop:',pop)
+        for ind in pop:
+            #print('ind:', ind)
+            pop_array[row_index] = pop_index
+            for i, allele_pair in enumerate(ind[1]):
+                #print('allele_pair:', allele_pair)
+                locus_name = f'locus{i+1}'
+                #print('locus_name:', locus_name)
+                for allele in allele_pair:
+                    #print('allele:', allele)
+                    col_name = f'{locus_name}.{allele}'
+                    #print('col_name:', col_name)
+                    if col_name in data.columns:
+                        data.at[row_index, col_name] = 1
+            row_index += 1
+        pop_index += 1
+
+    numeric_cols = data.select_dtypes(include=['float64', 'int64']).columns
+    data[numeric_cols] = data[numeric_cols].apply(normalize)
+
+    data_array = data.values
+
+    return data_array,pop_array
+def normalize(x):
+
+    return (x - np.min(x)) / (np.max(x) - np.min(x))
 
 def main():
+    Islanddata,labels = read_gene("16PopIsland_1_1.gen")
+    #HierIslanddata,_ = read_gene("16PopHierISland_1_1.gen")
+    #Steppingstonedata,_ = read_gene("16PopSteppingstone_1_1.gen")
+    #Hiersteppingstonedata,_ = read_gene("16PopHiersteppingstone_1_1.gen")
 
-    # Generate synthetic data
-    n_samples = 100
-    n_clusters = 3
-    n_features = 100
-    random_state = 1234
-    dispersion = 18
-    max_iter=20
-    nPC = 4
+    #Islanddata.to_csv("Islanddata.csv")
+    #HierIslanddata.to_csv("HierIslanddata.csv")
+    #Steppingstonedata.to_csv("Steppingstonedata.csv")
+    #Hiersteppingstonedata.to_csv("Hiersteppingstonedata.csv")
+    #Islanddata = Islanddata.values
+    Islanddata = pd.read_csv('Islanddata_Qin.csv').values
+    HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv').values
+    Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv').values
+    Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
+    n_clusters = 16
+    max_iter = 100
 
-    # generation base filename 
-    base = f"c{n_clusters}_it{max_iter}_disp{dispersion}"
-
-    random.seed(random_state)
-    np.random.seed(random_state)
-
-    print("Generating synthetic data...")
-    data, labels = generate_synthetic_data(n_samples=n_samples,
-                                           n_clusters=n_clusters,
-                                           n_features=n_features,
-                                           random_state=random_state,
-                                           dispersion=dispersion)
-    print(data)
+    #test(Islanddata, labels, n_clusters, max_iter, 'Islanddata')
+    test(HierIslanddata, labels, n_clusters, max_iter, 'HierIslanddata')
+    test(Steppingstonedata, labels, n_clusters, max_iter, 'Steppingstonedata')
+    test(Hiersteppingstonedata, labels, n_clusters, max_iter, 'Hiersteppingstonedata')
+def test(data,labels,n_clusters,max_iter,datetype):
 
     embeddings = {}
 
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
-    T, G, W, _ = un_rtlda_a(data, n_clusters, nPC, Ninit=10, max_iter=max_iter, Ntry=10,
-                            center=True, gamma=0.001)
+    T, G, W, _ = un_rtlda(data, n_clusters, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                            center=True, gamma=1e-6)
+    print(T)
     embeddings["Un-RTLDA"] = {"T": T, "W": W, "G": G}
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA...")
-    T2, G2, W2, _ = un_trlda_a(data, n_clusters, nPC, Ninit=10, max_iter=max_iter, Ntry=10,
+    T2, G2, W2, _ = un_trlda(data, n_clusters, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                              center=True)
+    print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
 
     #SWULDA
     print("\nRunning SWULDA...")
-    T3, G3, W3, _ = swulda(data, n_clusters, nPC, max_iter=max_iter, center=False)
+    T3, G3, W3, _ = swulda(data, n_clusters, tol=1e-6, max_iter=max_iter, center=False)
+    print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
-    # #KF
-    # print("\nRunning KFDAPC...")
-    # T3, G3, W3, _ = unkfdapc(data, n_clusters, nPC, max_iter=max_iter, center=False)
-    # print(T3)
-    # embeddings["KFDAPC"] = {"T": T3, "W": W3, "G": G3}
+    # Un-RT(CD)LDA
+    print("\nRunning Un-RT(CD)LDA...")
+    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                             center=True,cd_clustering=True)
+    print(T4)
+    embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
-    # sDAPC
-    print("\nRunning sDAPC...")
-    sdapc_results = sdapc(data, labels=labels, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100, n_pca_interval=10)
-    embeddings["Semisupervised-DAPC"] = sdapc_results["Semisupervised-DAPC"]
-    embeddings["Supervised-DAPC"] = sdapc_results["Supervised-DAPC"]
+    # Un-TR(CD)LDA
+    print("\nRunning Un-TR(CD)LDA...")
+    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=100, max_iter=max_iter, Ntry=10,
+                                 center=True, cd_clustering=True)
+    print(T5)
+    embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
-    # # Un-RT(CD)LDA
-    # print("\nRunning Un-RT(CD)LDA...")
-    # T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=10, max_iter=100, Ntry=10,
-    #                          center=True,cd_clustering=True)
-    # print(T4)
-    # embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
-
-    # # Un-TR(CD)LDA
-    # print("\nRunning Un-TR(CD)LDA...")
-    # T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=10, max_iter=100, Ntry=10,
-    #                              center=True, cd_clustering=True)
-    # print(T5)
-    # embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
+    #print("\nRunning Un-KFDAPC...")
+    #T6, G6, W6, _ = unkfdapc(data, n_clusters, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=max_iter, Ntry=10, center=True, no_pca=False, alpha=0.5, beta=0.5, sigma=1.0,
+    #          mu=1e-12, lambda_param=1e8)
+    #print(T6)
+    #embeddings["Un-KFDAPC"] = {"T": T6, "W": W6, "G": G6}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
-    plot_embeddings(embeddings, data, labels, filename=f"{base}.pdf")
+    plot_embeddings(embeddings, data, labels, filename=f"{datetype}_maxiter={max_iter}.pdf")
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
-    print_metrics(embeddings, labels, filename=f"{base}.txt")
+    print_metrics(embeddings, labels, file_name=f'{datetype}_maxiter={max_iter}_results.txt')
 
 
 # legend not working
@@ -163,7 +225,7 @@ def plot_embeddings(embeddings, dataset, labels,
     plt.close(fig)
 
 
-def print_metrics(embeddings, labels, filename="metrics_results.txt"):
+def print_metrics(embeddings, labels, file_name="metrics_results.txt"):
     """
     Calculate and print various clustering metrics for multiple embeddings.
 
@@ -203,51 +265,8 @@ def print_metrics(embeddings, labels, filename="metrics_results.txt"):
     print(results_df)
 
     # Export to txt file
-    with open(filename, 'w') as f:
+    with open(file_name, 'w') as f:
         f.write(results_df.to_string())
-
-def generate_synthetic_data(n_samples=1000, n_clusters=4, n_features=50,
-                            random_state=None, dispersion=1):
-    """
-    Generate synthetic data with specified number of samples, clusters, and
-    features.
-
-    Args:
-        n_samples (int, optional): The number of samples in the generated
-                                   dataset. Defaults to 1000.
-        n_clusters (int, optional): The number of clusters in the
-                                    generated dataset. Defaults to 4.
-        n_features (int, optional): The number of features in the generated
-                                    dataset. Defaults to 50.
-        random_state (int, optional): The random seed for reproducibility.
-                                      Defaults to None.
-        dispersion (float, optional): The dispersion of the clusters. Controls
-                                      the standard deviation of the clusters.
-                                      Defaults to 1.
-
-    Returns:
-        tuple: A tuple containing the generated data (numpy array) and the
-               corresponding labels (numpy array).
-    """
-    # Define the minimum and maximum standard deviation for the clusters
-    min_std = 0.1
-    max_std = 1
-
-    # Calculate the standard deviation for the clusters based on the
-    # dispersion parameter
-    cluster_std = min_std + (max_std - min_std) * dispersion
-
-    # Generate synthetic data with `n_clusters` clusters
-    data, labels = make_blobs(n_samples=n_samples, centers=n_clusters,
-                              n_features=n_features, random_state=random_state,
-                              cluster_std=cluster_std)
-
-    # Standardize the features
-    scaler = StandardScaler()
-    data = scaler.fit_transform(data)
-
-    return data, labels
-
 
 if __name__ == "__main__":
     main()

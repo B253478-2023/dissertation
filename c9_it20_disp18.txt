@@ -1,0 +1,6 @@
+                               Un-RTLDA  Un-TRLDA    SWULDA
+Adjusted Rand Index            0.390239  0.312659  0.015392
+Normalized Mutual Information  0.476313  0.425696  0.051187
+Silhouette Score               0.243834  0.280486  0.534029
+Fowlkes-Mallows Index          0.461995  0.393293  0.134909
+Completeness Score             0.484034  0.430976  0.052588

@@ -6,8 +6,7 @@ def compute_kernel_matrix(X, kernel_func):
     n = X.shape[1]
     K = np.zeros((n, n))
     for i in range(n):
-        for j in range(n):
-            K[i, j] = kernel_func(X[:, i], X[:, j])
+        K[i, :] = kernel_func(X[:, i][:, None], X)
     print("Kernel matrix shape:", K.shape)
     print("Kernel matrix sample:")
     print(K[:5, :5])

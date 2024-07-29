@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
 from unrtlda import *
 from untrlda import *
-from swulda_3 import *
+from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
 

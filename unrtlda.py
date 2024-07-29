@@ -77,7 +77,8 @@ def un_rtlda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100,
     T = None
 
     # Initialize W using PCA 
-    m = min(d, c - 1)
+    #m = min(d, c - 1, Npc)
+    m = Npc
     pca = PCA(n_components=m)
 
     if no_pca:

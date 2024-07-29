@@ -1,38 +1,22 @@
+import sys
 import numpy as np
+from numpy.linalg import inv
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
 from scipy.linalg import eigh
 
 
-def swulda(X, c, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False):
-    """
-    Implement the Self-Weighted Unsupervised Linear Discriminant Analysis (SWULDA) algorithm for clustering.
-
-    Args:
-        X (numpy array): Input data of shape (n_samples, n_features).
-        c (int): Number of clusters.
-        Ninit (int, optional): Number of initializations for KMeans. Defaults to 10.
-        tol (float, optional): Convergence tolerance. Defaults to 1e-6.
-        max_iter (int, optional): Maximum number of iterations. Defaults to 100.
-        Ntry (int, optional): Number of attempts to find the best clustering. Defaults to 10.
-        center (bool, optional): Whether to center the data. Defaults to True.
-        no_pca (bool, optional): Whether to disable PCA initialization. Defaults to False.
-
-    Returns:
-        G (numpy array): Indicator matrix of shape (n_samples, n_clusters).
-        W (numpy array): Projection matrix of shape (n_features, n_clusters).
-        Lambda (float): Adaptive weight.
-        obj_log (list): Log of objective values during iterations.
-    """
-    n, d = X.shape  # Number of samples
+def swulda(X, c, Npc, tol=1e-6, max_iter=100, center=True, no_pca=False):
+    n, d = X.shape  # Number of samples and features
 
     if center:
-        H = np.eye(n) - np.ones((n, n)) / n
-        X_centered = H @ X
-    else:
-        X_centered = X
+        X = X - np.mean(X, axis=0)  # Center the data
 
-    St = X_centered.T @ X_centered  # Compute the total scatter matrix St
+    it = 0  # Initialize the iteration counter
+
+    obj_old = -np.inf  # Initialize the old objective value
+    obj_new = 0.0  # Initialize the new objective value
+    Ypre = None  # Initialize the predicted cluster labels
+    T = None
 
     # Initialize random indicator matrix G
     G = np.zeros((n, c))
@@ -43,60 +27,76 @@ def swulda(X, c, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=
     Lambda = np.random.rand()
 
     # Initialize W using PCA
-    m = min(d, c - 1)
+    #m = min(d, c - 1, Npc)
+    m = Npc
     if no_pca:
-        W = X_centered.T[:, :m]
+        W = np.random.rand(d, m)  # Random initialization
     else:
         pca = PCA(n_components=m)
-        W = pca.fit_transform(X_centered.T @ H).T
+        W = pca.fit(X).components_.T  # W should be d x m
+    
+    #print(f"X shape: {X.shape}")      # Expecting (n, d)
+    #print(f"n: {n}")
+    #print(f"d: {d}")
+    #print(f"m: {m}")
+    #print(f"c: {c}")
+    #print(f"W shape: {W.shape}")  # Expecting (m, d))
+    #print(f"G shape: {G.shape}")  # Expecting (n, c))
 
     obj_log = []
 
     # Iterate until convergence or max_iter is reached
-    for it in range(max_iter):
-        # Update W by solving the eigenvalue problem
-        A = (Lambda ** 2 - Lambda) * np.eye(d)
-        B = Lambda ** 2 * G @ np.linalg.inv(G.T @ G) @ G.T
-        M = X_centered @ (A - B) @ X_centered.T
-        eigenvalues, W = eigh(M, eigvals=(0, c - 1))
+    while (not np.isclose(obj_old, obj_new, atol=tol) or it == 0) and it < max_iter:
+        it += 1
+        obj_old = obj_new
+
+        # Print shapes before updating W
+        #print(f"Iteration {it}:")
+        #print(f"W.T shape: {W.T.shape}")  # Expecting (m, d)
+        #print(f"G shape: {G.shape}")      # Expecting (n, c)
+        #print(f"inv(G.T @ G) shape: {np.linalg.pinv(G.T @ G).shape}")  # Expecting (c, c)
+
+        # Update W 
+        A = (Lambda**2 - Lambda) * np.eye(n)
+        #print(f"A shape: {A.shape}")  # Expecting (n, n)
+
+        B = Lambda**2 * G @ np.linalg.pinv(G.T @ G) @ G.T
+        #print(f"B shape: {B.shape}")  # Expecting (n, n)
+
+        M = X.T @ (A - B) @ X
+        #print(f"M shape: {M.shape}")  # Expecting (d, d)
+
+        eigvals, eigvecs = np.linalg.eigh(M)
+        W = eigvecs[:, :m]
+        #print(f"W shape: {W.shape}")  # Expecting (d, m)
+
+        # Update F
+        # F = W^T X G (G^T G)^-1
+        F = W.T @ X.T @ G @ np.linalg.pinv(G.T @ G)
+        #print(f"F shape: {F.shape}")     # Expecting (m, c)
 
         # Update Lambda
-        F = W.T @ X_centered @ G @ np.linalg.inv(G.T @ G)
-        Lambda_new = np.trace(W.T @ X_centered @ X_centered.T @ W) / (
-                    2 * np.linalg.norm(W.T @ X_centered - F @ G.T, 'fro') ** 2)
+        FGt = F @ G.T  # Dimension: (m, c) x (c, n) = (m, n)
+        #print(f"FGt shape: {FGt.shape}")  # Expecting (m, n)
 
         # Update G
-        D = np.zeros_like(G)
         for i in range(n):
-            distances = np.linalg.norm(W.T @ X_centered[i, :].reshape(-1, 1) - F, axis=0)
-            min_index = np.argmin(distances)
-            D[i, min_index] = 1
+            distances = np.linalg.norm(W.T @ X[i, :].reshape(-1, 1) - F, axis=0)
+            G[i, :] = 0
+            G[i, np.argmin(distances)] = 1
 
-        # Check convergence
-        if np.abs(Lambda_new - Lambda) < tol:
-            break
+        Lambda = np.trace(W.T @ X.T @ X @ W) / (2 * np.linalg.norm(W.T @ X.T - FGt)**2)
+        #print(f"Lambda: {Lambda}")
 
-        Lambda = Lambda_new
-        G = D
-
-        # Update objective function log
-        obj_new = np.trace(W.T @ St @ W) / np.trace(W.T @ X_centered @ (A - B) @ X_centered.T @ W)
+        # Check for convergence
+        obj_new = Lambda**2 * np.linalg.norm(W.T @ X.T - FGt, 'fro')**2 - Lambda * np.trace(W.T @ X.T @ X @ W)
         obj_log.append(obj_new)
 
-    return G, W, Lambda, obj_log
+    # Calculate embeddings T
+    T = X @ W
+    #print(f"T shape: {T.shape}") # Expecting n,m
 
+    # Determine cluster assignments Ypre
+    Ypre = np.argmax(G, axis=1).tolist()
 
-# Example usage with random data
-np.random.seed(0)
-X = np.random.rand(100, 10)
-num_clusters = 3
-G, W, Lambda, obj_log = swulda(X, num_clusters, center=True)
-
-print("Indicator Matrix G:")
-print(G)
-print("Projection Matrix W:")
-print(W)
-print("Adaptive Weight Lambda:")
-print(Lambda)
-print("Objective Log:")
-print(obj_log)
+    return T, Ypre, W, obj_log

@@ -15,23 +15,33 @@ from unkfdapc import *
 def main():
 
     labels_insular = pd.read_csv('../coala/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 1].str.replace('pop', '').astype(int).values.ravel()
+    labels_cline = pd.read_csv('../coala/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:,1].str.replace('pop', '').astype(int).values.ravel()
+    labels_weak = pd.read_csv('../coala/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:,1].str.replace('pop', '').astype(int).values.ravel()
+    labels_strong = pd.read_csv('../coala/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:,1].str.replace('pop', '').astype(int).values.ravel()
 
     obs_labels_insular = pd.read_csv('../coala/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+    obs_labels_cline = pd.read_csv('../coala/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+    obs_labels_weak = pd.read_csv('../coala/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+    obs_labels_strong = pd.read_csv('../coala/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
 
+    insulardata = pd.read_csv('../coala/sim_insular_div_0.9_rep_1.csv', index_col=0).values
+    clinedata = pd.read_csv('../coala/sim_cline_div_0.9_rep_1.csv', index_col=0).values
+    weakdata = pd.read_csv('../coala/sim_weak_div_0.9_rep_1.csv', index_col=0).values
+    strongdata = pd.read_csv('../coala/sim_strong_div_0.9_rep_1.csv', index_col=0).values
 
-    insulardata = pd.read_csv('../coala/sim_cline_div_0.9_rep_1.csv', index_col=0).values
-    #insulardata = df.iloc[:, 1:].values
-
-    print('labels array:', labels_insular.dtype, labels_insular.shape, labels_insular)
-    print('insulardata array:', insulardata.dtype, insulardata.shape)
+    #print('labels array:', labels_insular.dtype, labels_insular.shape, labels_insular)
+    #print('insulardata array:', insulardata.dtype, insulardata.shape)
 
     n_clusters = 3
     Npc = 2
     max_iter = 500
 
     test(insulardata, labels_insular, n_clusters, Npc, max_iter, 'insulardata')
+    test(clinedata, labels_cline, n_clusters, Npc, max_iter, 'clinedata')
+    test(weakdata, labels_weak, n_clusters, Npc, max_iter, 'weakdata')
+    test(strongdata, labels_strong, n_clusters, Npc, max_iter, 'strongdata')
 def test(data,labels,n_clusters,Npc,max_iter,datetype):
-
+    print(labels)
     embeddings = {}
 
     # Apply Un-LDA and obtain the reduced-dimensional representation and cluster assignments
@@ -39,6 +49,7 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
     T0, G0, W0, _ = un_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                            center=True, gamma=1e-6)
     print(T0)
+    print(G0)
     embeddings["Un-LDA"] = {"T": T0, "W": W0, "G": G0}
 
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments

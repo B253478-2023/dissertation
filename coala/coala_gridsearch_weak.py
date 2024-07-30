@@ -1,5 +1,4 @@
 import pandas as pd
-from Bio.PopGen.GenePop import read
 from collections import defaultdict
 import json
 import seaborn as sns
@@ -16,87 +15,37 @@ from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
 from unkfdapc import *
-def read_gene(genepop_file):
-    with open(genepop_file) as f:
-        Island_1 = read(f)
-
-    num_individuals = sum(len(pop) for pop in Island_1.populations)
-
-    # 提取所有的locus和alleles
-    loci_alleles = defaultdict(set)
-    for pop in Island_1.populations:
-        #print('pop:', pop)
-        for ind in pop:
-            #print('ind:', ind)
-            for i, allele_pair in enumerate(ind[1]):
-                #print('i:', i)
-                #print('allele_pair:', allele_pair)
-                locus_name = f'locus{i+1}'
-                loci_alleles[locus_name].update(allele_pair)
-
-    columns = []
-    for locus, alleles in loci_alleles.items():
-        for allele in sorted(alleles):
-            columns.append(f'{locus}.{allele}')
-
-    data = pd.DataFrame(0, index=range(num_individuals), columns=columns)
-
-    pop_array = np.zeros(num_individuals, dtype=int)
-    pop_index = 0
-    # 填充数据
-    row_index = 0
-    for pop in Island_1.populations:
-        #print('pop:',pop)
-        for ind in pop:
-            #print('ind:', ind)
-            pop_array[row_index] = pop_index
-            for i, allele_pair in enumerate(ind[1]):
-                #print('allele_pair:', allele_pair)
-                locus_name = f'locus{i+1}'
-                #print('locus_name:', locus_name)
-                for allele in allele_pair:
-                    #print('allele:', allele)
-                    col_name = f'{locus_name}.{allele}'
-                    #print('col_name:', col_name)
-                    if col_name in data.columns:
-                        data.at[row_index, col_name] = 1
-            row_index += 1
-        pop_index += 1
-
-    numeric_cols = data.select_dtypes(include=['float64', 'int64']).columns
-    data[numeric_cols] = data[numeric_cols].apply(normalize)
-
-    data_array = data.values
-
-    return data_array,pop_array
-def normalize(x):
-
-    return (x - np.min(x)) / (np.max(x) - np.min(x))
-
 def main():
-    n_groups = 16
-    group_size = 30
-    labels = np.repeat(np.arange(1, n_groups + 1), group_size)
-    Islanddata = pd.read_csv('Islanddata_Qin.csv').values
-    HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv').values
-    Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv').values
-    Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
+    labels_insular = pd.read_csv('../coala/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 1].str.replace('pop', '').astype(int).values.ravel()
+    labels_cline = pd.read_csv('../coala/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:,1].str.replace('pop', '').astype(int).values.ravel()
+    labels_weak = pd.read_csv('../coala/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:,1].str.replace('pop', '').astype(int).values.ravel()
+    labels_strong = pd.read_csv('../coala/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:,1].str.replace('pop', '').astype(int).values.ravel()
+
+    obs_labels_insular = pd.read_csv('../coala/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+    obs_labels_cline = pd.read_csv('../coala/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+    obs_labels_weak = pd.read_csv('../coala/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+    obs_labels_strong = pd.read_csv('../coala/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 2].str.replace('pop', '').astype(int).values.ravel()
+
+    insulardata = pd.read_csv('../coala/sim_insular_div_0.9_rep_1.csv', index_col=0).values
+    clinedata = pd.read_csv('../coala/sim_cline_div_0.9_rep_1.csv', index_col=0).values
+    weakdata = pd.read_csv('../coala/sim_weak_div_0.9_rep_1.csv', index_col=0).values
+    strongdata = pd.read_csv('../coala/sim_strong_div_0.9_rep_1.csv', index_col=0).values
 
     max_iter = 500
-    k_range =range(15,18)
-    Npc_range = [10,20,30,40,50]
+    k_range =range(2,5)
+    Npc_range = range(2,11)
 
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter, datatype='Island', method='un_rtlda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_trlda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='swulda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_rtlda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_trlda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='swulda')
 
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_lda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_kfdapc')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter, datatype='Island',method='un_rtalda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_tralda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_lda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_kfdapc')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_rtalda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_tralda')
 
-    grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter, datatype='Island',method='un_rtcdlda')
-    grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_trcdlda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_rtcdlda')
+    grid_search_clustering(weakdata, labels_weak, k_range, Npc_range,max_iter, datatype='weakdata', method='un_trcdlda')
 def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='Island', method='un_rtlda', n_splits=5):
     """
     Performs a grid search over number of clusters and number of principal components with k-fold cross-validation.
@@ -159,7 +108,7 @@ def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='
             if avg_nmi > nmi_best_score:
                 nmi_best_score = avg_nmi
                 nmi_best_params = {'nmi best params: Npc': Npc, 'k': k, 'NMI': avg_nmi, 'ARI': avg_ari,
-                                   'Silhouette': avg_silhouette}
+                                   'Silhouette': avg_silhouette, 'fmi': avg_fmi, 'completeness': avg_completeness}
 
     with open(f'{datatype}_{method}_grid_search_results.txt', 'w') as f:
         f.write(json.dumps(nmi_best_params) + "\n")

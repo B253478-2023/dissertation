@@ -13,17 +13,20 @@ from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
+from unlda import *
 from unrtlda import *
+from unrtlda_a import *
 from untrlda import *
+from untrlda_a import *
 from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-# unkfdapc import *
+from unkfdapc import *
 def main():
 
     labels = pd.read_csv('../H3N2/H3N2pop.csv', index_col=0).values.ravel()
     H3N2data = pd.read_csv('../H3N2/H3N2data.csv', index_col=0).values
-    print('labels array:', labels.dtype, labels.shape)
+    print('labels array:', labels.dtype, labels.shape, labels)
     print('H3N2data array:', H3N2data.dtype, H3N2data.shape)
     n_clusters = 6
     Npc = 150
@@ -34,10 +37,17 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
 
     embeddings = {}
 
+    # Apply Un-LDA and obtain the reduced-dimensional representation and cluster assignments
+    print("\nRunning Un-LDA...")
+    T0, G0, W0, _ = un_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                           center=True, gamma=1e-6)
+    print(T0)
+    embeddings["Un-LDA"] = {"T": T0, "W": W0, "G": G0}
+
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
     T, G, W, _ = un_rtlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-                            center=True, gamma=1e-6)
+                          center=True, gamma=1e-6)
     print(T)
     embeddings["Un-RTLDA"] = {"T": T, "W": W, "G": G}
 
@@ -48,39 +58,54 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
     print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
 
-    #SWULDA
+    # SWULDA
     print("\nRunning SWULDA...")
     T3, G3, W3, _ = swulda(data, n_clusters, Npc=Npc, tol=1e-6, max_iter=max_iter, center=False)
     print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Un-RT(CD)LDA
-    #print("\nRunning Un-RT(CD)LDA...")
-    #T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-    #                         center=True,cd_clustering=True)
-    #print(T4)
-    #embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
+    print("\nRunning Un-RT(CD)LDA...")
+    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                             center=True,cd_clustering=True)
+    print(T4)
+    embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
     # Un-TR(CD)LDA
-    #print("\nRunning Un-TR(CD)LDA...")
-    #T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, max_iter=max_iter, Ntry=10,
-    #                             center=True, cd_clustering=True)
-    #print(T5)
-    #embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
+    print("\nRunning Un-TR(CD)LDA...")
+    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, max_iter=max_iter, Ntry=10,
+                                 center=True, cd_clustering=True)
+    print(T5)
+    embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
-    #print("\nRunning Un-KFDAPC...")
-    #T6, G6, W6, _ = unkfdapc(data, n_clusters, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=max_iter, Ntry=10, center=True, no_pca=False, alpha=0.5, beta=0.5, sigma=1.0,
-    #          mu=1e-12, lambda_param=1e8)
-    #print(T6)
-    #embeddings["Un-KFDAPC"] = {"T": T6, "W": W6, "G": G6}
+    # Un-KFDAPC
+    print("\nRunning Un-KFDAPC...")
+    T6, G6, W6, _ = unkfdapc(data, n_clusters, Npc=Npc, Ninit=50, gamma=1e-6, tol=1e-8, max_iter=max_iter, Ntry=50,
+                                   center=True, no_pca=False, alpha=1.0, beta=1.0, sigma=0.1, mu=1e-12,
+                                   lambda_param=1e8)
+    print(T6)
+    embeddings["Un-KFDAPC"] = {"T": T6, "W": W6, "G": G6}
+
+    print("\nRunning Un-RTLDA_A...")
+    T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                               center=True, gamma=1e-6)
+    print(T7)
+    embeddings["Un-RTLDA_A"] = {"T": T7, "W": W7, "G": G7}
+
+    # Un-TRLDA
+    print("\nRunning Un-TRLDA_A...")
+    T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=500, Ntry=30,
+                               center=True)
+    print(T8)
+    embeddings["Un-TRLDA_A"] = {"T": T8, "W": W8, "G": G8}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
-    plot_embeddings(embeddings, data, labels, filename=f"{datetype}_maxiter={max_iter}.pdf")
+    plot_embeddings(embeddings, data, labels, filename=f"{datetype}_maxiter={max_iter}_test.pdf")
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
-    print_metrics(embeddings, labels, file_name=f'{datetype}_maxiter={max_iter}_results.txt')
+    print_metrics(embeddings, labels, file_name=f'{datetype}_maxiter={max_iter}_results_test.txt')
 
 
 # legend not working

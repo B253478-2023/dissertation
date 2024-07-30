@@ -122,7 +122,7 @@ def trace_ratio(A, B, dim, is_max=True):
 
     return W, obj[-1]
 
-def un_tr_cd_lda(X, c, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False,cd_clustering=True):
+def un_tr_cd_lda(X, c, Npc, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False,cd_clustering=True):
     # describetion need to be changed
     """
     Implement the Unsupervised Trace-Ratio Linear Discriminant Analysis (Un-TRLDA) algorithm for clustering.
@@ -160,7 +160,8 @@ def un_tr_cd_lda(X, c, Ninit=10, tol=1e-6, max_iter=100, Ntry=10, center=True, n
     T = None
 
     # Initialize W using PCA
-    m = min(d, c - 1)
+    # m = min(d, c - 1, Npc)
+    m = Npc
     pca = PCA(n_components=m)
 
     if no_pca:

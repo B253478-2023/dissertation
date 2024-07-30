@@ -21,7 +21,7 @@ from untrlda_a import *
 from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-# unkfdapc import *
+from unkfdapc import *
 def read_gene(genepop_file):
     # 读取Genepop文件
     with open(genepop_file) as f:
@@ -148,11 +148,13 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
     #print(T5)
     #embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
-    #print("\nRunning Un-KFDAPC...")
-    #T6, G6, W6, _ = unkfdapc(data, n_clusters, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=max_iter, Ntry=10, center=True, no_pca=False, alpha=0.5, beta=0.5, sigma=1.0,
-    #          mu=1e-12, lambda_param=1e8)
-    #print(T6)
-    #embeddings["Un-KFDAPC"] = {"T": T6, "W": W6, "G": G6}
+    print("\nRunning Un-KFDAPC...")
+
+    T6, G6, W6, _ = unkfdapc(data, n_clusters, Npc=Npc, Ninit=50, gamma=1e-6, tol=1e-8, max_iter=max_iter, Ntry=50,
+                                   center=True, no_pca=False, alpha=1.0, beta=1.0, sigma=0.1, mu=1e-12,
+                                   lambda_param=1e8)
+    print(T6)
+    embeddings["Un-KFDAPC"] = {"T": T6, "W": W6, "G": G6}
 
     print("\nRunning Un-RTLDA_A...")
     T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
@@ -162,7 +164,7 @@ def test(data,labels,n_clusters,Npc,max_iter,datetype):
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA_A...")
-    T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+    T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=500, Ntry=30,
                              center=True)
     print(T8)
     embeddings["Un-TRLDA_A"] = {"T": T8, "W": W8, "G": G8}

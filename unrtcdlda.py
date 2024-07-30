@@ -3,7 +3,7 @@ import scipy
 from scipy.linalg import eigh
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-
+from scipy.linalg import pinv
 
 def coordinate_descent_clustering(A, num_clusters, atol=1e-6, max_iter=100):
     """
@@ -105,7 +105,7 @@ def gevd(A, B):
 
 
 # Define the Un-RTLDA function
-def un_rt_cd_lda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False, cd_clustering=True):
+def un_rt_cd_lda(X, c, Npc, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, center=True, no_pca=False, cd_clustering=True):
     """
     Implement the Unsupervised Ratio-Trade (Coordinate Descent) Linear Discriminant Analysis (Un-RT(CD)LDA) algorithm for clustering.
 
@@ -144,7 +144,8 @@ def un_rt_cd_lda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, ce
     T = None
 
     # Initialize W using PCA
-    m = min(d, c - 1)
+    # m = min(d, c - 1, Npc)
+    m = Npc
     pca = PCA(n_components=m)
 
     if no_pca:
@@ -205,7 +206,7 @@ def un_rt_cd_lda(X, c, Ninit=10, gamma=1e-6, tol=1e-6, max_iter=100, Ntry=10, ce
 
         # Update the new objective value
         #obj_new = np.trace((W2.T @ Stt @ W2) ** -1 @ W2.T @ Sb @ W2)
-        pinv_term = np.linalg.pinv(W2.T @ Stt @ W2)
+        pinv_term = pinv(W2.T @ Stt @ W2)
         obj_new = np.trace(pinv_term @ W2.T @ Sb @ W2)
 
         obj_log.append(obj_new)

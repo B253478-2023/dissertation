@@ -1,6 +1,7 @@
+import pysam
+import os
+from sklearn.preprocessing import LabelEncoder
 import pandas as pd
-from Bio.PopGen.GenePop import read
-from collections import defaultdict
 import json
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -16,87 +17,74 @@ from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
 from unkfdapc import *
-def read_gene(genepop_file):
-    with open(genepop_file) as f:
-        Island_1 = read(f)
-
-    num_individuals = sum(len(pop) for pop in Island_1.populations)
-
-    # 提取所有的locus和alleles
-    loci_alleles = defaultdict(set)
-    for pop in Island_1.populations:
-        #print('pop:', pop)
-        for ind in pop:
-            #print('ind:', ind)
-            for i, allele_pair in enumerate(ind[1]):
-                #print('i:', i)
-                #print('allele_pair:', allele_pair)
-                locus_name = f'locus{i+1}'
-                loci_alleles[locus_name].update(allele_pair)
-
-    columns = []
-    for locus, alleles in loci_alleles.items():
-        for allele in sorted(alleles):
-            columns.append(f'{locus}.{allele}')
-
-    data = pd.DataFrame(0, index=range(num_individuals), columns=columns)
-
-    pop_array = np.zeros(num_individuals, dtype=int)
-    pop_index = 0
-    # 填充数据
-    row_index = 0
-    for pop in Island_1.populations:
-        #print('pop:',pop)
-        for ind in pop:
-            #print('ind:', ind)
-            pop_array[row_index] = pop_index
-            for i, allele_pair in enumerate(ind[1]):
-                #print('allele_pair:', allele_pair)
-                locus_name = f'locus{i+1}'
-                #print('locus_name:', locus_name)
-                for allele in allele_pair:
-                    #print('allele:', allele)
-                    col_name = f'{locus_name}.{allele}'
-                    #print('col_name:', col_name)
-                    if col_name in data.columns:
-                        data.at[row_index, col_name] = 1
-            row_index += 1
-        pop_index += 1
-
-    numeric_cols = data.select_dtypes(include=['float64', 'int64']).columns
-    data[numeric_cols] = data[numeric_cols].apply(normalize)
-
-    data_array = data.values
-
-    return data_array,pop_array
-def normalize(x):
-
-    return (x - np.min(x)) / (np.max(x) - np.min(x))
-
 def main():
-    n_groups = 16
-    group_size = 30
-    labels = np.repeat(np.arange(1, n_groups + 1), group_size)
-    Islanddata = pd.read_csv('Islanddata_Qin.csv').values
-    HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv').values
-    Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv').values
-    Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
+
+    # Paths to the example files
+    vcf_path = "fig2a.final.vcf.gz"
+    popmap_path = "fig2a.popmap.csv"
+
+    # Extract genotype matrix and population labels
+    genotype_matrix, pop_labels = vcf_to_matrix(vcf_path, popmap_path)
+
+    label_encoder = LabelEncoder()
+    pop_labels = label_encoder.fit_transform(pop_labels)
+
+    # Print the shape of the matrix and some labels as a sanity check
+    print("Genotype Matrix Shape:", genotype_matrix.shape)
+    print("Genotype Matrix:\n", genotype_matrix)
+    print("Population Labels:", pop_labels[:10])
 
     max_iter = 500
-    k_range =range(15,18)
-    Npc_range = [10,20,30,40,50]
+    k_range = range(2, 6)
+    Npc_range = range(20, 301, 20)
 
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter, datatype='Island', method='un_rtlda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_trlda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='swulda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_rtlda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_trlda')
+    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_lda')
 
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_lda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_kfdapc')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter, datatype='Island',method='un_rtalda')
-    #grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_tralda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_rtalda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_tralda')
+    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='swulda')
 
-    grid_search_clustering(Islanddata, labels, k_range, Npc_range,max_iter, datatype='Island',method='un_rtcdlda')
-    grid_search_clustering(Islanddata, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_trcdlda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_rtcdlda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_trcdlda')
+    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_kfdapc')
+def vcf_to_matrix(vcf_path, popmap_path):
+    # Create an index with tabix if it doesn't exist
+    if not (os.path.exists(vcf_path + '.tbi') or os.path.exists(vcf_path + '.csi')):
+        pysam.tabix_index(vcf_path, preset='vcf')
+
+    # Read popmap to create a dictionary for individual labels
+    popmap = pd.read_csv(popmap_path, header=None, names=["ind", "pop"])
+    popmap_dict = pd.Series(popmap["pop"].values, index=popmap["ind"]).to_dict()
+
+    # Open VCF file using pysam
+    vcf = pysam.VariantFile(vcf_path)
+    samples = list(vcf.header.samples)
+    num_individuals = len(samples)
+    num_variants = sum(1 for _ in vcf.fetch())
+
+    # Initialize matrix and labels list
+    genotype_matrix = np.zeros((num_individuals, num_variants), dtype=int)
+    pop_labels = [popmap_dict.get(sample, 'Unknown') for sample in samples]
+
+    # Re-open VCF to iterate over it again
+    vcf = pysam.VariantFile(vcf_path)
+    variant_idx = 0
+    for record in vcf.fetch():
+        for ind_idx, ind in enumerate(samples):
+            sample = record.samples[ind]
+            gt = sample['GT']
+            if gt == (0, 0):
+                genotype_matrix[ind_idx, variant_idx] = 0  # Homozygous reference
+            elif gt == (0, 1) or gt == (1, 0):
+                genotype_matrix[ind_idx, variant_idx] = 1  # Heterozygous
+            elif gt == (1, 1):
+                genotype_matrix[ind_idx, variant_idx] = 2  # Homozygous alternate
+        variant_idx += 1
+
+    return genotype_matrix, pop_labels
+
 def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='Island', method='un_rtlda', n_splits=5):
     """
     Performs a grid search over number of clusters and number of principal components with k-fold cross-validation.
@@ -111,8 +99,8 @@ def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='
     Returns:
         dict: Best parameters based on silhouette score and other metrics.
     """
-    nmi_best_score = -1
-    nmi_best_params = {'nPC': None, 'k': None}
+    silhouette_best_score = -1
+    silhouette_best_params = {'nPC': None, 'k': None}
 
     results = []
 
@@ -156,19 +144,19 @@ def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='
             })
 
             # Update the best params based on a chosen metric, e.g., nmi
-            if avg_nmi > nmi_best_score:
-                nmi_best_score = avg_nmi
-                nmi_best_params = {'nmi best params: Npc': Npc, 'k': k, 'NMI': avg_nmi, 'ARI': avg_ari,
-                                   'Silhouette': avg_silhouette}
+            if avg_silhouette > silhouette_best_score:
+                silhouette_best_score = avg_silhouette
+                silhouette_best_params = {'silhouette best params: Npc': Npc, 'k': k, 'NMI': avg_nmi, 'ARI': avg_ari,
+                                   'Silhouette': avg_silhouette, 'fmi': avg_fmi, 'completeness': avg_completeness}
 
     with open(f'{datatype}_{method}_grid_search_results.txt', 'w') as f:
-        f.write(json.dumps(nmi_best_params) + "\n")
+        f.write(json.dumps(silhouette_best_params) + "\n")
         f.flush()
         for result in results:
             f.write(json.dumps(result) + "\n")
             f.flush()
 
-    return nmi_best_params, results
+    return silhouette_best_params, results
 
 def test(data, labels, n_clusters, Npc, max_iter, method='un_rtlda'):
 

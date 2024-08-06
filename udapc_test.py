@@ -8,13 +8,19 @@ from matplotlib.backends.backend_pdf import PdfPages
 from sklearn.datasets import make_blobs
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from matplotlib.patches import Ellipse
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
+from unlda import *
+from unrtlda import *
 from unrtlda_a import *
+from untrlda import *
 from untrlda_a import *
 from swulda import *
+from unrtcdlda import *
+from untrcdlda import *
 from unkfdapc import *
 from sdapc import *
-
+from unkfda import *
 def main():
 
     # Generate synthetic data
@@ -22,12 +28,12 @@ def main():
     n_clusters = 3
     n_features = 100
     random_state = 1234
-    dispersion = 18
+    dispersion = 4
     max_iter=20
-    nPC = 4
+    Npc = 4
 
     # generation base filename 
-    base = f"c{n_clusters}_it{max_iter}_disp{dispersion}"
+    base = f"test_n{n_samples}_c{n_clusters}_it{max_iter}_disp{dispersion}"
 
     random.seed(random_state)
     np.random.seed(random_state)
@@ -42,52 +48,84 @@ def main():
 
     embeddings = {}
 
+
+    # Apply Un-LDA and obtain the reduced-dimensional representation and cluster assignments
+    print("\nRunning Un-LDA-Km...")
+    T0, G0, W0, _ = un_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                          center=True, gamma=1e-6)
+    print(T0)
+    print(G0)
+    embeddings["Un-LDA-Km"] = {"T": T0, "W": W0, "G": G0}
+
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
-    T, G, W, _ = un_rtlda_a(data, n_clusters, nPC, Ninit=10, max_iter=max_iter, Ntry=10,
-                            center=True, gamma=0.001)
+    T, G, W, _ = un_rtlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                            center=True, gamma=1e-6)
+    print(T)
     embeddings["Un-RTLDA"] = {"T": T, "W": W, "G": G}
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA...")
-    T2, G2, W2, _ = un_trlda_a(data, n_clusters, nPC, Ninit=10, max_iter=max_iter, Ntry=10,
+    T2, G2, W2, _ = un_trlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                              center=True)
+    print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
 
     #SWULDA
     print("\nRunning SWULDA...")
-    T3, G3, W3, _ = swulda(data, n_clusters, nPC, max_iter=max_iter, center=False)
+    T3, G3, W3, _ = swulda(data, n_clusters, Npc=Npc, tol=1e-6, max_iter=max_iter, center=False)
+    print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
-    # #KF
-    # print("\nRunning KFDAPC...")
-    # T3, G3, W3, _ = unkfdapc(data, n_clusters, nPC, max_iter=max_iter, center=False)
-    # print(T3)
-    # embeddings["KFDAPC"] = {"T": T3, "W": W3, "G": G3}
+    # Un-RT(CD)LDA
+    print("\nRunning Un-RT(CD)LDA...")
+    T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                             center=True,cd_clustering=True)
+    print(T4)
+    embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
+
+    # Un-TR(CD)LDA
+    print("\nRunning Un-TR(CD)LDA...")
+    T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, max_iter=max_iter, Ntry=10,
+                                 center=True, cd_clustering=True)
+    print(T5)
+    embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
+
+    print("\nRunning Un-KFDA...")
+
+    T6, G6, W6, _ = unkfdapc(data, n_clusters, Npc=Npc, Ninit=50, gamma=1e-6, tol=1e-8, max_iter=max_iter, Ntry=50,
+                                   center=True, no_pca=False, alpha=1.0, beta=1.0, sigma=0.1, mu=1e-12,
+                                   lambda_param=1e8)
+    print(T6)
+    embeddings["Un-KFDA"] = {"T": T6, "W": W6, "G": G6}
+
+    print("\nRunning Un-RT(A)LDA...")
+    T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
+                          center=True, gamma=1e-6)
+    print(T7)
+    embeddings["Un-RT(A)LDA"] = {"T": T7, "W": W7, "G": G7}
+
+    # Un-TRLDA
+    print("\nRunning Un-TR(A)LDA...")
+    T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=500, Ntry=30,
+                             center=True)
+    print(T8)
+    embeddings["Un-TR(A)LDA"] = {"T": T8, "W": W8, "G": G8}
 
     # sDAPC
     print("\nRunning sDAPC...")
-    sdapc_results = sdapc(data, labels=labels, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100, n_pca_interval=10)
+    sdapc_results,_ = sdapc(data, labels=None, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100,
+                          n_pca_interval=10)
     embeddings["Semisupervised-DAPC"] = sdapc_results["Semisupervised-DAPC"]
+
+    sdapc_results,_ = sdapc(data, labels=labels, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100, n_pca_interval=10)
+
     embeddings["Supervised-DAPC"] = sdapc_results["Supervised-DAPC"]
-
-    # # Un-RT(CD)LDA
-    # print("\nRunning Un-RT(CD)LDA...")
-    # T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Ninit=10, max_iter=100, Ntry=10,
-    #                          center=True,cd_clustering=True)
-    # print(T4)
-    # embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
-
-    # # Un-TR(CD)LDA
-    # print("\nRunning Un-TR(CD)LDA...")
-    # T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Ninit=10, max_iter=100, Ntry=10,
-    #                              center=True, cd_clustering=True)
-    # print(T5)
-    # embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
-    plot_embeddings(embeddings, data, labels, filename=f"{base}.pdf")
+    plot_embedded_clusters(embeddings, labels, filename=f"{base}_da.png")
+    plot_pca_clusters(embeddings, data, labels, filename=f"{base}_pca.png")
 
     # Compute clustering performance metrics
     print("\nClustering metrics:")
@@ -95,20 +133,18 @@ def main():
 
 
 # legend not working
-def plot_embeddings(embeddings, dataset, labels,
-                    filename="embeddings_plots.pdf", no_pca=False):
+
+def plot_pca_clusters(embeddings, dataset, labels, filename="pca_clusters.png", no_pca=False):
     """
-    Plot a grid of clusters and embeddings and save to a PDF.
+    Plot clusters in PCA space and save to a PNG file.
 
     Args:
         embeddings (dict): Dictionary of embeddings with keys as method names
         and values as dicts with "T", "G", and "W".
-        dataset (numpy array): Original dataset of shape (n_samples,
-                               n_features).
+        dataset (numpy array): Original dataset of shape (n_samples, n_features).
         labels (list): Original population labels for each sample.
-        filename (str): Name of the output PDF file containing the plots.
-        no_pca (bool): If True, use the first two dimensions of the dataset
-                       instead of PCA.
+        filename (str): Name of the output PNG file containing the plots.
+        no_pca (bool): If True, use the first two dimensions of the dataset instead of PCA.
     """
     if no_pca:
         X = dataset[:, :2]
@@ -116,50 +152,114 @@ def plot_embeddings(embeddings, dataset, labels,
         pca = PCA(n_components=2)
         X = pca.fit_transform(dataset)
 
-    # original data in PCA space
-    df = pd.DataFrame(X, columns=[f"PC{i+1}" for i in range(X.shape[1])])
+    df = pd.DataFrame(X, columns=[f"PC{i + 1}" for i in range(X.shape[1])])
     df["Original_Population"] = labels
 
     n_embeddings = len(embeddings)
-    n_cols = n_embeddings
-    n_rows = 2
+    n_cols = 3
+    n_rows = 4
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 10))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows), squeeze=False)
+
+    for idx, (method, emb) in enumerate(embeddings.items()):
+        G = emb["G"]
+        row = idx // n_cols
+        col = idx % n_cols
+
+        ax = axes[row, col]
+        scatter = sns.scatterplot(ax=ax, data=df, x="PC1", y="PC2", hue=G, style="Original_Population", palette="deep",
+                                  legend=False)
+        ax.set_title(f"{method} Clusters on PCA Embeddings")
+        ax.set_aspect('equal')
+
+        # Adding cluster labels
+        for cluster in np.unique(G):
+            cluster_data = df[G == cluster]
+            centroid = cluster_data.mean(axis=0)
+            ax.text(centroid["PC1"], centroid["PC2"], str(cluster),
+                    bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'),
+                    ha='center', va='center', fontsize=10, weight='bold')
+
+            # Drawing ellipses
+            cov = np.cov(cluster_data[['PC1', 'PC2']].values.T)
+            lambda_, v = np.linalg.eig(cov)
+            lambda_ = np.sqrt(lambda_)
+            ell = plt.matplotlib.patches.Ellipse(xy=(centroid["PC1"], centroid["PC2"]),
+                                                 width=lambda_[0] * 2, height=lambda_[1] * 2,
+                                                 angle=np.rad2deg(np.arccos(v[0, 0])), color='black', fill=False)
+            ax.add_artist(ell)
+
+    # Remove empty subplots
+    for i in range(n_embeddings, n_rows * n_cols):
+        fig.delaxes(axes.flatten()[i])
+
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.savefig(filename, format='png')
+    plt.close(fig)
+
+
+def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png"):
+    """
+    Plot clusters in embedded space and save to a PNG file.
+
+    Args:
+        embeddings (dict): Dictionary of embeddings with keys as method names
+        and values as dicts with "T", "G", and "W".
+        labels (list): Original population labels for each sample.
+        filename (str): Name of the output PNG file containing the plots.
+    """
+    n_embeddings = len(embeddings)
+    n_cols = 3
+    n_rows = 4
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows), squeeze=False)
 
     for idx, (method, emb) in enumerate(embeddings.items()):
         T = emb["T"]
         G = emb["G"]
-        df2 = pd.DataFrame(T, columns=[f"DA{i+1}" for i in range(T.shape[1])])
+        df2 = pd.DataFrame(T, columns=[f"DA{i + 1}" for i in range(T.shape[1])])
         df2["Cluster"] = G
         df2["Original_Population"] = labels
 
-        # Plot clusters in PCA space
-        ax = axes[0, idx]
-        sns.scatterplot(ax=ax, data=df, x="PC1", y="PC2", hue=G, style="Original_Population", palette="deep", legend=False)
-        ax.set_title(f"{method} Clusters on PCA Embeddings")
+        row = idx // n_cols
+        col = idx % n_cols
 
-        # Plot clusters in embedded space
-        ax = axes[1, idx]
+        ax = axes[row, col]
         if T.shape[1] > 1:
-            sns.scatterplot(ax=ax, data=df2, x="DA1", y="DA2", hue="Cluster", style="Original_Population", palette="deep", legend=False)
+            scatter = sns.scatterplot(ax=ax, data=df2, x="DA1", y="DA2", hue="Cluster", style="Original_Population",
+                                      palette="deep", legend=False)
             ax.set_title(f"{method} Embeddings")
+
+            # Adding cluster labels and ellipses
+            for cluster in np.unique(G):
+                cluster_data = df2[df2["Cluster"] == cluster]
+                centroid = cluster_data.mean(axis=0)
+                ax.text(centroid["DA1"], centroid["DA2"], str(cluster),
+                        bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'),
+                        ha='center', va='center', fontsize=10, weight='bold')
+
+                # Drawing ellipses
+                cov = np.cov(cluster_data[['DA1', 'DA2']].values.T)
+                lambda_, v = np.linalg.eig(cov)
+                lambda_ = np.sqrt(lambda_)
+                ell = Ellipse(xy=(centroid["DA1"], centroid["DA2"]),
+                              width=lambda_[0] * 2, height=lambda_[1] * 2,
+                              angle=np.rad2deg(np.arccos(v[0, 0])), color='black', fill=False)
+                ax.add_artist(ell)
         else:
             sns.kdeplot(ax=ax, x="DA1", hue="Cluster", data=df2, fill=None, common_norm=False, palette="deep", zorder=1)
             df2["y"] = 0.1
-            sns.scatterplot(ax=ax, data=df2, x="DA1", y="y", hue="Cluster", style="Original_Population", palette="deep", legend=False)
+            sns.scatterplot(ax=ax, data=df2, x="DA1", y="y", hue="Cluster", style="Original_Population", palette="deep",
+                            legend=False)
             ax.legend(fontsize="small")
             ax.set_title(f"{method} Embeddings (1 DA Axis)")
 
-    # Gather legend handles and labels from the last plot to use for the figure legend
-    handles, labels = ax.get_legend_handles_labels()
+    # Remove empty subplots
+    for i in range(n_embeddings, n_rows * n_cols):
+        fig.delaxes(axes.flatten()[i])
 
-    # Add a single legend at the top of the figure
-    fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=n_cols)
-
-    # Adjust layout and save the plot to a PDF
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    with PdfPages(filename) as pdf:
-        pdf.savefig(fig)
+    plt.savefig(filename, format='png')
     plt.close(fig)
 
 

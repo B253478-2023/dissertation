@@ -26,13 +26,13 @@ def initialize_r_environment():
                            n.pca = n_pca_seq, n.rep = 30, xval.plot = FALSE)
             
             pc_retain <- as.numeric(as.vector(names(cx[5][[1]])))[which.min(unlist(cx[5]))]
-            
+            print(paste("pc_retain:", pc_retain))
             dapc1 <- dapc(dat, grp, n.pca=pc_retain, n.da=length(unique(grp)))
             
             eig <- dapc1$eig
             pov <- eig / sum(eig) * 100
             
-            return(list(dapc=dapc1, pov=pov))
+            return(list(dapc=dapc1, pov=pov,pc_retain=pc_retain))
         }
     ''')
     return adegenet
@@ -50,7 +50,8 @@ def sdapc(X, labels=None, prop_pc_var=0.5, max_n_clust=20, n_pca_min=20, n_pca_m
     # Convert data to genind object
     genind_obj = adegenet.df2genind(r_X, ploidy=1)
     genind_obj2 = adegenet.df2genind(r_X, ploidy=1)
-    
+
+
     # Semi-supervised DAPC (using find.clusters)
     ro.globalenv['genind_obj'] = genind_obj
     ro.globalenv['genind_obj2'] = genind_obj2
@@ -59,20 +60,26 @@ def sdapc(X, labels=None, prop_pc_var=0.5, max_n_clust=20, n_pca_min=20, n_pca_m
     ro.globalenv['n_pca_min'] = n_pca_min
     ro.globalenv['n_pca_max'] = n_pca_max
     ro.globalenv['n_pca_interval'] = n_pca_interval
-    ro.r('grp <- find.clusters(genind_obj, perc.pca=prop_pc_var, pca.select="percVar", criterion="diffNgroup", max.n.clust=max_n_clust, choose.n.clust=FALSE)')
-    grp = ro.r('grp$grp')
-    ro.globalenv['grp'] = grp
-    semi_dapc_result = ro.r('dapc_xval(genind_obj, grp, "semisupervised", n_pca_min, n_pca_max, n_pca_interval)')
-    
-    semi_dapc = semi_dapc_result.rx2('dapc')
-    semi_pov = semi_dapc_result.rx2('pov')
-    print(semi_pov)
-    
-    T_semi = np.array(semi_dapc.rx2('ind.coord'))
-    G_semi = np.array(semi_dapc.rx2('grp'))
-    W_semi = None
 
-    embeddings["Semisupervised-DAPC"] = {"T": T_semi, "W": W_semi, "G": G_semi}
+    if labels is None:
+        ro.r('grp <- find.clusters(genind_obj, perc.pca=prop_pc_var, pca.select="percVar", criterion="diffNgroup", max.n.clust=max_n_clust, choose.n.clust=FALSE)')
+        grp = ro.r('grp$grp')
+        ro.globalenv['grp'] = grp
+        semi_dapc_result = ro.r('dapc_xval(genind_obj, grp, "semisupervised", n_pca_min, n_pca_max, n_pca_interval)')
+        #semi_dapc_result = ro.r('dapc(genind_obj, pop=grp, n.pca=n_pca_min, n.da=length(unique(grp)))')
+
+        semi_dapc = semi_dapc_result.rx2('dapc')
+        semi_pov = semi_dapc_result.rx2('pov')
+        pc_retain = semi_dapc_result.rx2('pc_retain')
+        print(semi_pov)
+        print(f"Number of principal components retained: {pc_retain}")
+
+        T_semi = np.array(semi_dapc.rx2('ind.coord'))
+        G_semi = np.array(semi_dapc.rx2('grp'))
+        W_semi = None
+        pc_retain = np.array(pc_retain)
+
+        embeddings["Semisupervised-DAPC"] = {"T": T_semi, "W": W_semi, "G": G_semi}
     
     # Supervised DAPC (using provided labels)
     if labels is not None:
@@ -80,15 +87,19 @@ def sdapc(X, labels=None, prop_pc_var=0.5, max_n_clust=20, n_pca_min=20, n_pca_m
         ro.globalenv['labels'] = ro.FactorVector(StrVector(str_labels))
         ro.r('genind_obj2@pop <- labels')
         supervised_dapc_result = ro.r('dapc_xval(genind_obj2, labels, "supervised", n_pca_min, n_pca_max, n_pca_interval)')
-        
+        #supervised_dapc_result = ro.r('dapc(genind_obj2, n.pca=n_pca_min)')
+
         supervised_dapc = supervised_dapc_result.rx2('dapc')
         supervised_pov = supervised_dapc_result.rx2('pov')
+        pc_retain = supervised_dapc_result.rx2('pca_retain')
         print(supervised_pov)
-        
+        print(f"Number of principal components retained: {pc_retain}")
+
         T_sup = np.array(supervised_dapc.rx2('ind.coord'))
         G_sup = np.array(supervised_dapc.rx2('grp'))
         W_sup = None
-        
+        pc_retain = np.array(pc_retain)
+
         embeddings["Supervised-DAPC"] = {"T": T_sup, "W": W_sup, "G": G_sup}
     
-    return embeddings
+    return embeddings, pc_retain

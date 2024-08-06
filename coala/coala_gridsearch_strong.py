@@ -35,17 +35,17 @@ def main():
     k_range =range(2,5)
     Npc_range = range(2,11)
 
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_rtlda')
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_trlda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_rtlda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_trlda')
     grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='swulda')
 
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_lda')
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_kfdapc')
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_rtalda')
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_tralda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_lda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_kfdapc')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_rtalda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_tralda')
 
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_rtcdlda')
-    grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_trcdlda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_rtcdlda')
+    #grid_search_clustering(strongdata, labels_strong, k_range, Npc_range,max_iter, datatype='strongdata', method='un_trcdlda')
 def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='Island', method='un_rtlda', n_splits=5):
     """
     Performs a grid search over number of clusters and number of principal components with k-fold cross-validation.

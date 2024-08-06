@@ -46,6 +46,7 @@ def main():
 
     #grid_search_clustering(insulardata, labels_insular, k_range, Npc_range, max_iter, datatype='insulardata',method='un_rtcdlda')
     grid_search_clustering(insulardata, labels_insular, k_range, Npc_range, max_iter, datatype='insulardata', method='un_trcdlda')
+
 def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='Island', method='un_rtlda', n_splits=5):
     """
     Performs a grid search over number of clusters and number of principal components with k-fold cross-validation.

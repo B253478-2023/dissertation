@@ -1,6 +1,0 @@
-                               Un-LDA  Un-RTLDA  Un-TRLDA    SWULDA  Un-KFDAPC  Un-RTLDA_A  Un-TRLDA_A  Semisupervised-DAPC  Supervised-DAPC
-Adjusted Rand Index               1.0   1.00000       1.0  0.245732   0.108460     1.00000         1.0             0.015018         1.000000
-Normalized Mutual Information     1.0   1.00000       1.0  0.375378   0.119931     1.00000         1.0             0.071784         1.000000
-Silhouette Score                  1.0   0.99999       1.0  0.237498   0.509688     0.99999         1.0             0.551461         0.505618
-Fowlkes-Mallows Index             1.0   1.00000       1.0  0.494031   0.399876     1.00000         1.0             0.470967         1.000000
-Completeness Score                1.0   1.00000       1.0  0.376686   0.119963     1.00000         1.0             0.093111         1.000000

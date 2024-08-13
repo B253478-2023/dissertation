@@ -47,12 +47,10 @@ for filename in os.listdir(data_folder):
 
 # Define the order of methods to ensure consistency
 method_order = [
-    'un_rtlda', 'un_trlda', 'un_lda', 'swulda', 'un_rtcdlda', 'un_trcdlda',
-    'un_kfdapc', 'un_rtalda', 'un_tralda'
+    'un_rtlda', 'un_trlda', 'un_lda', 'swulda', 'un_rtcdlda', 'un_trcdlda', 'un_rtalda', 'un_tralda'
 ]
 method_name_mapping = {
     'swulda': 'SWULDA',
-    'un_kfdapc': 'Un-KFDAPC',
     'un_lda': 'Un-LDA-Km',
     'un_rtlda': 'Un-RTLDA',
     'un_rtcdlda': 'Un-RTLDA(CD)',

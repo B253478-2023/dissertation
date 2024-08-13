@@ -28,10 +28,10 @@ def main():
     popmap_path = "terrapene_popmap.csv"
 
     # Extract genotype matrix and population labels
-    genotype_matrix, pop_labels = vcf_to_matrix(vcf_path, popmap_path)
+    genotype_matrix, pop_labels, samples = vcf_to_matrix(vcf_path, popmap_path)
 
     label_encoder = LabelEncoder()
-    pop_labels = label_encoder.fit_transform(pop_labels)
+    pop_labels_encoded = label_encoder.fit_transform(pop_labels)
 
 
     n_clusters = 3
@@ -40,12 +40,9 @@ def main():
 
 
     data = genotype_matrix
-    labels = pop_labels
-    obs_labels = pop_labels
-    label_encoder = LabelEncoder()
-    labels = label_encoder.fit_transform(labels)
-    obs_labels = label_encoder.fit_transform(obs_labels)
-    base = "terrapene"
+    labels = pop_labels_encoded
+    obs_labels = pop_labels_encoded
+    base = "terrapene_new"
 
     #print(labels)
     embeddings = {}
@@ -104,14 +101,6 @@ def main():
     print(T5)
     embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
-    print("\nRunning Un-KFDAPC...")
-    n_clusters = 21
-    Npc = 50
-    T6, G6, W6, _ = unkfdapc(data, n_clusters, Npc=Npc, Ninit=50, gamma=1e-6, tol=1e-8, max_iter=max_iter, Ntry=50,
-                             center=True, no_pca=False, alpha=1.0, beta=1.0, sigma=0.1, mu=1e-12,
-                             lambda_param=1e8)
-    print(T6)
-    embeddings["Un-KFDA"] = {"T": T6, "W": W6, "G": G6}
 
     print("\nRunning Un-RT(A)LDA...")
     n_clusters = 21
@@ -141,9 +130,11 @@ def main():
 
     embeddings["Supervised-DAPC"] = sdapc_results["Supervised-DAPC"]
 
+    predicted_labels(embeddings, samples, filename=f"{base}.csv")
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
     plot_embedded_clusters(embeddings, labels, filename=f"{base}_da.png")
+
     plot_pca_clusters(embeddings, data, labels, filename=f"{base}_pca.png")
 
     # Compute clustering performance metrics
@@ -185,7 +176,8 @@ def vcf_to_matrix(vcf_path, popmap_path):
                 genotype_matrix[ind_idx, variant_idx] = 2  # Homozygous alternate
         variant_idx += 1
 
-    return genotype_matrix, pop_labels
+    return genotype_matrix, pop_labels, samples
+
 
 # legend not working
 def plot_pca_clusters(embeddings, dataset, labels, filename="pca_clusters.png", no_pca=False):
@@ -236,6 +228,9 @@ def plot_pca_clusters(embeddings, dataset, labels, filename="pca_clusters.png", 
 
             # Drawing ellipses
             cov = np.cov(cluster_data[['PC1', 'PC2']].values.T)
+            if np.any(np.isnan(cov)) or np.any(np.isinf(cov)):
+                print(f"Skipping ellipse for cluster {cluster} due to invalid covariance matrix.")
+                continue
             lambda_, v = np.linalg.eig(cov)
             lambda_ = np.sqrt(lambda_)
             ell = plt.matplotlib.patches.Ellipse(xy=(centroid["PC1"], centroid["PC2"]),
@@ -271,7 +266,38 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
     for idx, (method, emb) in enumerate(embeddings.items()):
         T = emb["T"]
         G = emb["G"]
-        df2 = pd.DataFrame(T, columns=[f"DA{i + 1}" for i in range(T.shape[1])])
+        W = emb.get("W", None)
+
+        # Debugging: Log the shapes and contents of the matrices
+        print(f"Method: {method}")
+        print(f"T shape: {T.shape}")
+
+        if method not in ["Semisupervised-DAPC", "Supervised-DAPC"]:
+            if W is not None:
+                print(f"W shape: {W.shape}")
+
+                # Compute eigenvalues (variance captured by each axis)
+                eigenvalues = np.var(T, axis=0)
+                sorted_indices = np.argsort(eigenvalues)[::-1]
+
+                # Ensure we only select available dimensions within bounds of T
+                sorted_indices = [i for i in sorted_indices if i < T.shape[1]]
+                max_dims = min(2, len(sorted_indices))
+                sorted_indices = sorted_indices[:max_dims]
+
+                # Debugging: Log the final sorted indices
+                print(f"Final sorted indices: {sorted_indices}")
+
+                sorted_T = T[:, sorted_indices]
+            else:
+                # If W is None, use the first two dimensions by default
+                print("W is None, using first two dimensions of T")
+                sorted_T = T[:, :2]
+        else:
+            # For "Semisupervised-DAPC" and "Supervised-DAPC", use T directly
+            sorted_T = T[:, :2]
+
+        df2 = pd.DataFrame(sorted_T, columns=[f"DA{i + 1}" for i in range(sorted_T.shape[1])])
         df2["Cluster"] = G
         df2["Original_Population"] = labels
 
@@ -279,7 +305,7 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
         col = idx % n_cols
 
         ax = axes[row, col]
-        if T.shape[1] > 1:
+        if sorted_T.shape[1] > 1:
             scatter = sns.scatterplot(ax=ax, data=df2, x="DA1", y="DA2", hue="Cluster", style="Original_Population",
                                       palette="deep", legend=False)
             ax.set_title(f"{method} Embeddings")
@@ -294,6 +320,9 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
 
                 # Drawing ellipses
                 cov = np.cov(cluster_data[['DA1', 'DA2']].values.T)
+                if np.any(np.isnan(cov)) or np.any(np.isinf(cov)):
+                    print(f"Skipping ellipse for cluster {cluster} due to invalid covariance matrix.")
+                    continue
                 lambda_, v = np.linalg.eig(cov)
                 lambda_ = np.sqrt(lambda_)
                 ell = Ellipse(xy=(centroid["DA1"], centroid["DA2"]),
@@ -315,6 +344,7 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(filename, format='png')
     plt.close(fig)
+
 
 def print_metrics(embeddings, labels, filename="metrics_results.txt"):
     """
@@ -360,47 +390,25 @@ def print_metrics(embeddings, labels, filename="metrics_results.txt"):
         f.write(results_df.to_string())
 
 
-def generate_synthetic_data(n_samples=1000, n_clusters=4, n_features=50,
-                            random_state=None, dispersion=1):
-    """
-    Generate synthetic data with specified number of samples, clusters, and
-    features.
+def predicted_labels(embeddings, samples, filename="predicted_labels.csv"):
+    results = pd.DataFrame({"ind": samples})
 
-    Args:
-        n_samples (int, optional): The number of samples in the generated
-                                   dataset. Defaults to 1000.
-        n_clusters (int, optional): The number of clusters in the
-                                    generated dataset. Defaults to 4.
-        n_features (int, optional): The number of features in the generated
-                                    dataset. Defaults to 50.
-        random_state (int, optional): The random seed for reproducibility.
-                                      Defaults to None.
-        dispersion (float, optional): The dispersion of the clusters. Controls
-                                      the standard deviation of the clusters.
-                                      Defaults to 1.
+    for method, emb in embeddings.items():
+        T = emb["T"]
+        G = emb["G"]
 
-    Returns:
-        tuple: A tuple containing the generated data (numpy array) and the
-               corresponding labels (numpy array).
-    """
-    # Define the minimum and maximum standard deviation for the clusters
-    min_std = 0.1
-    max_std = 1
+        # Ensure G is a numpy array
+        G = np.array(G)
 
-    # Calculate the standard deviation for the clusters based on the
-    # dispersion parameter
-    cluster_std = min_std + (max_std - min_std) * dispersion
+        print(f"Method: {method}, G shape: {G.shape}, Results shape: {results.shape}")
 
-    # Generate synthetic data with `n_clusters` clusters
-    data, labels = make_blobs(n_samples=n_samples, centers=n_clusters,
-                              n_features=n_features, random_state=random_state,
-                              cluster_std=cluster_std)
+        if len(G) != len(results):
+            raise ValueError(f"Length of G ({len(G)}) does not match length of results ({len(results)})")
 
-    # Standardize the features
-    scaler = StandardScaler()
-    data = scaler.fit_transform(data)
+        results[method + " Predicted Label"] = G
 
-    return data, labels
+    results.to_csv(filename, index=False)
+    print(f"Results saved to {filename}")
 
 
 if __name__ == "__main__":

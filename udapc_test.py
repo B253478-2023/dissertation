@@ -18,9 +18,8 @@ from untrlda_a import *
 from swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
 from sdapc import *
-from unkfda import *
+from unkfdapc import *
 def main():
 
     # Generate synthetic data
@@ -33,7 +32,7 @@ def main():
     Npc = 4
 
     # generation base filename 
-    base = f"test_n{n_samples}_c{n_clusters}_it{max_iter}_disp{dispersion}"
+    base = f"new_n{n_samples}_c{n_clusters}_it{max_iter}_disp{dispersion}"
 
     random.seed(random_state)
     np.random.seed(random_state)
@@ -90,14 +89,6 @@ def main():
                                  center=True, cd_clustering=True)
     print(T5)
     embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
-
-    print("\nRunning Un-KFDA...")
-
-    T6, G6, W6, _ = unkfdapc(data, n_clusters, Npc=Npc, Ninit=50, gamma=1e-6, tol=1e-8, max_iter=max_iter, Ntry=50,
-                                   center=True, no_pca=False, alpha=1.0, beta=1.0, sigma=0.1, mu=1e-12,
-                                   lambda_param=1e8)
-    print(T6)
-    embeddings["Un-KFDA"] = {"T": T6, "W": W6, "G": G6}
 
     print("\nRunning Un-RT(A)LDA...")
     T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
@@ -182,6 +173,9 @@ def plot_pca_clusters(embeddings, dataset, labels, filename="pca_clusters.png", 
 
             # Drawing ellipses
             cov = np.cov(cluster_data[['PC1', 'PC2']].values.T)
+            if np.any(np.isnan(cov)) or np.any(np.isinf(cov)):
+                print(f"Skipping ellipse for cluster {cluster} due to invalid covariance matrix.")
+                continue
             lambda_, v = np.linalg.eig(cov)
             lambda_ = np.sqrt(lambda_)
             ell = plt.matplotlib.patches.Ellipse(xy=(centroid["PC1"], centroid["PC2"]),
@@ -217,7 +211,38 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
     for idx, (method, emb) in enumerate(embeddings.items()):
         T = emb["T"]
         G = emb["G"]
-        df2 = pd.DataFrame(T, columns=[f"DA{i + 1}" for i in range(T.shape[1])])
+        W = emb.get("W", None)
+
+        # Debugging: Log the shapes and contents of the matrices
+        print(f"Method: {method}")
+        print(f"T shape: {T.shape}")
+
+        if method not in ["Semisupervised-DAPC", "Supervised-DAPC"]:
+            if W is not None:
+                print(f"W shape: {W.shape}")
+
+                # Compute eigenvalues (variance captured by each axis)
+                eigenvalues = np.var(T, axis=0)
+                sorted_indices = np.argsort(eigenvalues)[::-1]
+
+                # Ensure we only select available dimensions within bounds of T
+                sorted_indices = [i for i in sorted_indices if i < T.shape[1]]
+                max_dims = min(2, len(sorted_indices))
+                sorted_indices = sorted_indices[:max_dims]
+
+                # Debugging: Log the final sorted indices
+                print(f"Final sorted indices: {sorted_indices}")
+
+                sorted_T = T[:, sorted_indices]
+            else:
+                # If W is None, use the first two dimensions by default
+                print("W is None, using first two dimensions of T")
+                sorted_T = T[:, :2]
+        else:
+            # For "Semisupervised-DAPC" and "Supervised-DAPC", use T directly
+            sorted_T = T[:, :2]
+
+        df2 = pd.DataFrame(sorted_T, columns=[f"DA{i + 1}" for i in range(sorted_T.shape[1])])
         df2["Cluster"] = G
         df2["Original_Population"] = labels
 
@@ -225,7 +250,7 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
         col = idx % n_cols
 
         ax = axes[row, col]
-        if T.shape[1] > 1:
+        if sorted_T.shape[1] > 1:
             scatter = sns.scatterplot(ax=ax, data=df2, x="DA1", y="DA2", hue="Cluster", style="Original_Population",
                                       palette="deep", legend=False)
             ax.set_title(f"{method} Embeddings")
@@ -240,6 +265,9 @@ def plot_embedded_clusters(embeddings, labels, filename="embedded_clusters.png")
 
                 # Drawing ellipses
                 cov = np.cov(cluster_data[['DA1', 'DA2']].values.T)
+                if np.any(np.isnan(cov)) or np.any(np.isinf(cov)):
+                    print(f"Skipping ellipse for cluster {cluster} due to invalid covariance matrix.")
+                    continue
                 lambda_, v = np.linalg.eig(cov)
                 lambda_ = np.sqrt(lambda_)
                 ell = Ellipse(xy=(centroid["DA1"], centroid["DA2"]),

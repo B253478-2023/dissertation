@@ -21,8 +21,8 @@ from grid_search import *
 def main():
 
     # Paths to the example files
-    vcf_path = "fig2b.filtered.vcf.gz"
-    popmap_path = "fig2b.popmap.csv"
+    vcf_path = "datasets/fig2b.filtered.vcf.gz"
+    popmap_path = "datasets/fig2b.popmap.csv"
 
     # Extract genotype matrix and population labels
     genotype_matrix, pop_labels = vcf_to_matrix(vcf_path, popmap_path)

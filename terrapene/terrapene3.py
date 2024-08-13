@@ -22,8 +22,8 @@ from grid_search import *
 def main():
 
     # Paths to the example files
-    vcf_path = "terrapene.filtered.vcf.gz"
-    popmap_path = "terrapene_popmap.csv"
+    vcf_path = "datasets/terrapene.filtered.vcf.gz"
+    popmap_path = "datasets/terrapene_popmap.csv"
 
     # Extract genotype matrix and population labels
     genotype_matrix, pop_labels = vcf_to_matrix(vcf_path, popmap_path)

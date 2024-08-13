@@ -22,15 +22,15 @@ from sdapc import *
 def main():
     # generation base filename
 
-    labels_insular = pd.read_csv('../coala/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None)
-    labels_cline = pd.read_csv('../coala/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None)
-    labels_weak = pd.read_csv('../coala/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None)
-    labels_strong = pd.read_csv('../coala/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_insular = pd.read_csv('datasets/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_cline = pd.read_csv('datasets/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_weak = pd.read_csv('datasets/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_strong = pd.read_csv('datasets/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None)
 
-    insulardata = pd.read_csv('../coala/sim_insular_div_0.9_rep_1.csv', index_col=0).values
-    clinedata = pd.read_csv('../coala/sim_cline_div_0.9_rep_1.csv', index_col=0).values
-    weakdata = pd.read_csv('../coala/sim_weak_div_0.9_rep_1.csv', index_col=0).values
-    strongdata = pd.read_csv('../coala/sim_strong_div_0.9_rep_1.csv', index_col=0).values
+    insulardata = pd.read_csv('datasets/sim_insular_div_0.9_rep_1.csv', index_col=0).values
+    clinedata = pd.read_csv('datasets/sim_cline_div_0.9_rep_1.csv', index_col=0).values
+    weakdata = pd.read_csv('datasets/sim_weak_div_0.9_rep_1.csv', index_col=0).values
+    strongdata = pd.read_csv('datasets/sim_strong_div_0.9_rep_1.csv', index_col=0).values
 
 
     n_clusters = 3

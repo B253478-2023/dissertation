@@ -1,0 +1,6 @@
+	Un-LDA-Km	Un-RTLDA	Un-TRLDA	SWULDA	Un-RT(CD)LDA	Un-TR(CD)LDA	Un-KFDA	Un-RT(A)LDA	Un-TR(A)LDA	Semisupervised-DAPC	Supervised-DAPC
+Adjusted Rand Index	26.79%	27.77%	4.73%	16.38%	0.41%	5.43%	9.98%	30.21%	4.73%	4.73%	100.00%
+Normalized Mutual Information	53.39%	56.67%	22.47%	45.06%	2.18%	15.38%	34.21%	58.32%	22.47%	22.47%	100.00%
+Silhouette Score	100.00%	100.00%	100.00%	100.00%	2.49%	96.20%	57.40%	100.00%	100.00%	97.40%	14.19%
+Fowlkes-Mallows Index	35.37%	33.46%	30.44%	35.71%	20.06%	26.46%	16.35%	35.63%	30.44%	30.44%	100.00%
+Completeness Score	59.12%	56.81%	79.35%	74.39%	5.38%	37.91%	33.57%	58.34%	79.35%	79.35%	100.00%

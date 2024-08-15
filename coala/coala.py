@@ -7,11 +7,11 @@ from unlda import *
 from unrtlda import *
 from unrtlda_a import *
 from untrlda import *
-from untrlda_a import *
-from swulda import *
+from Methods.untrlda_a import *
+from Methods.swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
+from Methods.unkfdapc import *
 def main():
 
     labels_insular = pd.read_csv('datasets/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None).iloc[:, 1].str.replace('pop', '').astype(int).values.ravel()

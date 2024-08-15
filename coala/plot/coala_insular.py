@@ -1,5 +1,3 @@
-import pysam
-import os
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
@@ -18,18 +16,19 @@ from Methods.unkfdapc import *
 from sdapc import *
 
 
+
 def main():
     # generation base filename
 
-    # Paths to the example files
-    vcf_path = "../datasets/fig2a.filtered.vcf.gz"
-    popmap_path = "../datasets/fig2a.popmap.csv"
+    labels_insular = pd.read_csv('datasets/labels_insular_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_cline = pd.read_csv('datasets/labels_cline_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_weak = pd.read_csv('datasets/labels_weak_div_0.9_rep_1.csv', skiprows=1, header=None)
+    labels_strong = pd.read_csv('datasets/labels_strong_div_0.9_rep_1.csv', skiprows=1, header=None)
 
-    # Extract genotype matrix and population labels
-    genotype_matrix, pop_labels, samples = vcf_to_matrix(vcf_path, popmap_path)
-
-    label_encoder = LabelEncoder()
-    pop_labels_encoded = label_encoder.fit_transform(pop_labels)
+    insulardata = pd.read_csv('datasets/sim_insular_div_0.9_rep_1.csv', index_col=0).values
+    clinedata = pd.read_csv('datasets/sim_cline_div_0.9_rep_1.csv', index_col=0).values
+    weakdata = pd.read_csv('datasets/sim_weak_div_0.9_rep_1.csv', index_col=0).values
+    strongdata = pd.read_csv('datasets/sim_strong_div_0.9_rep_1.csv', index_col=0).values
 
 
     n_clusters = 3
@@ -37,18 +36,21 @@ def main():
     max_iter = 500
 
 
-    data = genotype_matrix
-    labels = pop_labels_encoded
-    obs_labels = pop_labels_encoded
-    base = "gila_a_new"
+    data = insulardata
+    fulllabels = labels_insular
+    fulllabels.columns = ['indv','true_labels','obs_labels']
+    label_encoder = LabelEncoder()
+    labels = label_encoder.fit_transform(fulllabels['true_labels'])
+    obs_labels = label_encoder.fit_transform(fulllabels['obs_labels'])
+    base = "coala_insular_new"
 
     #print(labels)
     embeddings = {}
 
     # Apply Un-LDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-LDA-Km...")
-    n_clusters = 4
-    Npc = 50
+    n_clusters = 3
+    Npc = 2
     T0, G0, W0, _ = un_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                            center=True, gamma=1e-6)
     print(T0)
@@ -57,8 +59,8 @@ def main():
 
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
-    n_clusters = 5
-    Npc = 50
+    n_clusters = 3
+    Npc = 2
     T, G, W, _ = un_rtlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                           center=True, gamma=1e-6)
     print(T)
@@ -66,8 +68,8 @@ def main():
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA...")
-    n_clusters = 3
-    Npc = 50
+    n_clusters = 2
+    Npc = 7
     T2, G2, W2, _ = un_trlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                              center=True)
     print(T2)
@@ -75,16 +77,16 @@ def main():
 
     # SWULDA
     print("\nRunning SWULDA...")
-    n_clusters = 2
-    Npc = 50
+    n_clusters = 3
+    Npc = 2
     T3, G3, W3, _ = swulda(data, n_clusters, Npc=Npc, tol=1e-6, max_iter=max_iter, center=False)
     print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Un-RT(CD)LDA
     print("\nRunning Un-RT(CD)LDA...")
-    n_clusters = 2
-    Npc = 300
+    n_clusters = 3
+    Npc = 3
     T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                                  center=True, cd_clustering=True)
     print(T4)
@@ -93,7 +95,7 @@ def main():
     # Un-TR(CD)LDA
     print("\nRunning Un-TR(CD)LDA...")
     n_clusters = 2
-    Npc = 100
+    Npc = 3
     T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, max_iter=max_iter, Ntry=10,
                                  center=True, cd_clustering=True)
     print(T5)
@@ -101,8 +103,8 @@ def main():
 
 
     print("\nRunning Un-RT(A)LDA...")
-    n_clusters = 5
-    Npc = 50
+    n_clusters = 3
+    Npc = 2
     T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                                center=True, gamma=1e-6)
     print(T7)
@@ -110,8 +112,8 @@ def main():
 
     # Un-TRLDA
     print("\nRunning Un-TR(A)LDA...")
-    n_clusters = 3
-    Npc = 200
+    n_clusters = 2
+    Npc = 7
     T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=500, Ntry=30,
                                center=True)
     print(T8)
@@ -119,16 +121,16 @@ def main():
 
     # sDAPC
     print("\nRunning sDAPC...")
-    sdapc_results, _ = sdapc(data, labels=None, prop_pc_var=0.5, max_n_clust=5, n_pca_min=50, n_pca_max=300,
-                             n_pca_interval=50)
+    sdapc_results, _ = sdapc(data, labels=None, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100,
+                             n_pca_interval=10)
     embeddings["Semisupervised-DAPC"] = sdapc_results["Semisupervised-DAPC"]
 
-    sdapc_results, _ = sdapc(data, labels=obs_labels, prop_pc_var=0.5, max_n_clust=5, n_pca_min=50, n_pca_max=300,
-                             n_pca_interval=50)
+    sdapc_results, _ = sdapc(data, labels=obs_labels, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100,
+                             n_pca_interval=10)
 
     embeddings["Supervised-DAPC"] = sdapc_results["Supervised-DAPC"]
 
-    predicted_labels(embeddings, samples, filename=f"{base}.csv")
+
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
     plot_embedded_clusters(embeddings, labels, filename=f"{base}_da.png")
@@ -138,44 +140,7 @@ def main():
     # Compute clustering performance metrics
     print("\nClustering metrics:")
     print_metrics(embeddings, labels, filename=f"{base}.txt")
-
-
-def vcf_to_matrix(vcf_path, popmap_path):
-    # Create an index with tabix if it doesn't exist
-    if not (os.path.exists(vcf_path + '.tbi') or os.path.exists(vcf_path + '.csi')):
-        pysam.tabix_index(vcf_path, preset='vcf')
-
-    # Read popmap to create a dictionary for individual labels
-    popmap = pd.read_csv(popmap_path, header=None, names=["ind", "pop"])
-    popmap_dict = pd.Series(popmap["pop"].values, index=popmap["ind"]).to_dict()
-
-    # Open VCF file using pysam
-    vcf = pysam.VariantFile(vcf_path)
-    samples = list(vcf.header.samples)
-    num_individuals = len(samples)
-    num_variants = sum(1 for _ in vcf.fetch())
-
-    # Initialize matrix and labels list
-    genotype_matrix = np.zeros((num_individuals, num_variants), dtype=int)
-    pop_labels = [popmap_dict.get(sample, 'Unknown') for sample in samples]
-
-    # Re-open VCF to iterate over it again
-    vcf = pysam.VariantFile(vcf_path)
-    variant_idx = 0
-    for record in vcf.fetch():
-        for ind_idx, ind in enumerate(samples):
-            sample = record.samples[ind]
-            gt = sample['GT']
-            if gt == (0, 0):
-                genotype_matrix[ind_idx, variant_idx] = 0  # Homozygous reference
-            elif gt == (0, 1) or gt == (1, 0):
-                genotype_matrix[ind_idx, variant_idx] = 1  # Heterozygous
-            elif gt == (1, 1):
-                genotype_matrix[ind_idx, variant_idx] = 2  # Homozygous alternate
-        variant_idx += 1
-
-    return genotype_matrix, pop_labels, samples
-
+    predicted_labels(embeddings, fulllabels, filename=f"{base}.csv")
 
 # legend not working
 def plot_pca_clusters(embeddings, dataset, labels, filename="pca_clusters.png", no_pca=False):
@@ -388,8 +353,13 @@ def print_metrics(embeddings, labels, filename="metrics_results.txt"):
         f.write(results_df.to_string())
 
 
-def predicted_labels(embeddings, samples, filename="predicted_labels.csv"):
-    results = pd.DataFrame({"ind": samples})
+def predicted_labels(embeddings, labels_df, filename="predicted_labels.csv"):
+    label_encoder = LabelEncoder()
+    original_labels = labels_df["true_labels"]
+    labels_encoded = label_encoder.fit_transform(original_labels)
+
+    results = labels_df.copy()
+    results["Encoded Label"] = labels_encoded
 
     for method, emb in embeddings.items():
         T = emb["T"]
@@ -398,12 +368,11 @@ def predicted_labels(embeddings, samples, filename="predicted_labels.csv"):
         # Ensure G is a numpy array
         G = np.array(G)
 
-        print(f"Method: {method}, G shape: {G.shape}, Results shape: {results.shape}")
+        print(f"Method: {method}, G shape: {G.shape}")  # 调试信息
 
-        if len(G) != len(results):
-            raise ValueError(f"Length of G ({len(G)}) does not match length of results ({len(results)})")
+        predicted_labels = label_encoder.inverse_transform(G)
 
-        results[method + " Predicted Label"] = G
+        results[method + " Predicted Label"] = predicted_labels
 
     results.to_csv(filename, index=False)
     print(f"Results saved to {filename}")

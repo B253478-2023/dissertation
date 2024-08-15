@@ -12,8 +12,8 @@ from Methods.grid_search import *
 def main():
 
     # Paths to the example files
-    vcf_path = "datasets/terrapene.filtered.vcf.gz"
-    popmap_path = "datasets/terrapene_popmap.csv"
+    vcf_path = "../datasets/fig2a.filtered.vcf.gz"
+    popmap_path = "../datasets/fig2a.popmap.csv"
 
     # Extract genotype matrix and population labels
     genotype_matrix, pop_labels = vcf_to_matrix(vcf_path, popmap_path)
@@ -26,21 +26,22 @@ def main():
     print("Genotype Matrix:\n", genotype_matrix)
     print("Population Labels:", pop_labels[:10])
 
+
     max_iter = 500
-    k_range = range(21, 1,-1)
+    k_range = range(5, 1, -1)
     Npc_range = range(300, 49, -50)
 
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_rtlda')
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_trlda')
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_lda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_rtlda')
+    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_trlda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_lda')
 
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_rtalda')
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_tralda')
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='swulda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_rtalda')
+    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_tralda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='swulda')
 
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_rtcdlda')
-    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_trcdlda')
-    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='terrapene_5', method='un_kfdapc')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_rtcdlda')
+    grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_trcdlda')
+    #grid_search_clustering(genotype_matrix, pop_labels, k_range, Npc_range, max_iter, datatype='gila2a', method='un_kfdapc')
 def vcf_to_matrix(vcf_path, popmap_path):
     # Create an index with tabix if it doesn't exist
     if not (os.path.exists(vcf_path + '.tbi') or os.path.exists(vcf_path + '.csi')):
@@ -76,7 +77,6 @@ def vcf_to_matrix(vcf_path, popmap_path):
         variant_idx += 1
 
     return genotype_matrix, pop_labels
-
 
 
 if __name__ == "__main__":

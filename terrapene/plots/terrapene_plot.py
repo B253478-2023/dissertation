@@ -3,9 +3,6 @@ import os
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
-from sklearn.datasets import make_blobs
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, \
     completeness_score
 from matplotlib.patches import Ellipse
@@ -13,11 +10,11 @@ from unlda import *
 from unrtlda import *
 from unrtlda_a import *
 from untrlda import *
-from untrlda_a import *
-from swulda import *
+from Methods.untrlda_a import *
+from Methods.swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
+from Methods.unkfdapc import *
 from sdapc import *
 
 def main():

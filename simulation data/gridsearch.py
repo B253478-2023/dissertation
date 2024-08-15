@@ -11,11 +11,11 @@ from unlda import *
 from unrtlda import *
 from unrtlda_a import *
 from untrlda import *
-from untrlda_a import *
-from swulda import *
+from Methods.untrlda_a import *
+from Methods.swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
+from Methods.unkfdapc import *
 def read_gene(genepop_file):
     with open(genepop_file) as f:
         Island_1 = read(f)

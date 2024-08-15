@@ -1,6 +1,0 @@
-                               Un-LDA-Km  Un-RTLDA
-Adjusted Rand Index                  1.0       1.0
-Normalized Mutual Information        1.0       1.0
-Silhouette Score                     1.0       1.0
-Fowlkes-Mallows Index                1.0       1.0
-Completeness Score                   1.0       1.0

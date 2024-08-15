@@ -1,16 +1,9 @@
-import numpy as np
-import pandas as pd
 from Bio.PopGen.GenePop import read
 from collections import defaultdict
-import random
-import sys
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from sklearn.datasets import make_blobs
-from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
 from unrtlda import *
@@ -18,7 +11,7 @@ from untrlda import *
 from swulda_3 import *
 from unrtcdlda import *
 from untrcdlda import *
-from unkfdapc import *
+from Methods.unkfdapc import *
 def read_gene(genepop_file):
     # 读取Genepop文件
     with open(genepop_file) as f:

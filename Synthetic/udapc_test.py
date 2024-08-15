@@ -1,11 +1,11 @@
-import pysam
-import os
+import random
+import pandas as pd
 import seaborn as sns
-from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
-from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, \
-    completeness_score
+from sklearn.datasets import make_blobs
+from sklearn.preprocessing import StandardScaler
 from matplotlib.patches import Ellipse
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, fowlkes_mallows_score, completeness_score
 from unlda import *
 from unrtlda import *
 from unrtlda_a import *
@@ -14,125 +14,104 @@ from Methods.untrlda_a import *
 from Methods.swulda import *
 from unrtcdlda import *
 from untrcdlda import *
-from Methods.unkfdapc import *
 from sdapc import *
-
-
+from Methods.unkfdapc import *
 def main():
-    # generation base filename
 
-    # Paths to the example files
-    vcf_path = "../datasets/fig2a.filtered.vcf.gz"
-    popmap_path = "../datasets/fig2a.popmap.csv"
-
-    # Extract genotype matrix and population labels
-    genotype_matrix, pop_labels, samples = vcf_to_matrix(vcf_path, popmap_path)
-
-    label_encoder = LabelEncoder()
-    pop_labels_encoded = label_encoder.fit_transform(pop_labels)
-
-
+    # Generate synthetic data
+    n_samples = 100
     n_clusters = 3
-    Npc = 2
-    max_iter = 500
+    n_features = 100
+    random_state = 1234
+    dispersion = 4
+    max_iter=20
+    Npc = 4
 
+    # generation base filename 
+    base = f"new_n{n_samples}_c{n_clusters}_it{max_iter}_disp{dispersion}"
 
-    data = genotype_matrix
-    labels = pop_labels_encoded
-    obs_labels = pop_labels_encoded
-    base = "gila_a_new"
+    random.seed(random_state)
+    np.random.seed(random_state)
 
-    #print(labels)
+    print("Generating synthetic data...")
+    data, labels = generate_synthetic_data(n_samples=n_samples,
+                                           n_clusters=n_clusters,
+                                           n_features=n_features,
+                                           random_state=random_state,
+                                           dispersion=dispersion)
+    print(data)
+
     embeddings = {}
+
 
     # Apply Un-LDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-LDA-Km...")
-    n_clusters = 4
-    Npc = 50
     T0, G0, W0, _ = un_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-                           center=True, gamma=1e-6)
+                          center=True, gamma=1e-6)
     print(T0)
     print(G0)
     embeddings["Un-LDA-Km"] = {"T": T0, "W": W0, "G": G0}
 
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
     print("\nRunning Un-RTLDA...")
-    n_clusters = 5
-    Npc = 50
     T, G, W, _ = un_rtlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-                          center=True, gamma=1e-6)
+                            center=True, gamma=1e-6)
     print(T)
     embeddings["Un-RTLDA"] = {"T": T, "W": W, "G": G}
 
     # Un-TRLDA
     print("\nRunning Un-TRLDA...")
-    n_clusters = 3
-    Npc = 50
     T2, G2, W2, _ = un_trlda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
                              center=True)
     print(T2)
     embeddings["Un-TRLDA"] = {"T": T2, "W": W2, "G": G2}
 
-    # SWULDA
+    #SWULDA
     print("\nRunning SWULDA...")
-    n_clusters = 2
-    Npc = 50
     T3, G3, W3, _ = swulda(data, n_clusters, Npc=Npc, tol=1e-6, max_iter=max_iter, center=False)
     print(T3)
     embeddings["SWULDA"] = {"T": T3, "W": W3, "G": G3}
 
     # Un-RT(CD)LDA
     print("\nRunning Un-RT(CD)LDA...")
-    n_clusters = 2
-    Npc = 300
     T4, G4, W4, _ = un_rt_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-                                 center=True, cd_clustering=True)
+                             center=True,cd_clustering=True)
     print(T4)
     embeddings["Un-RT(CD)LDA"] = {"T": T4, "W": W4, "G": G4}
 
     # Un-TR(CD)LDA
     print("\nRunning Un-TR(CD)LDA...")
-    n_clusters = 2
-    Npc = 100
     T5, G5, W5, _ = un_tr_cd_lda(data, n_clusters, Npc=Npc, Ninit=100, max_iter=max_iter, Ntry=10,
                                  center=True, cd_clustering=True)
     print(T5)
     embeddings["Un-TR(CD)LDA"] = {"T": T5, "W": W5, "G": G5}
 
-
     print("\nRunning Un-RT(A)LDA...")
-    n_clusters = 5
-    Npc = 50
     T7, G7, W7, _ = un_rtlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=max_iter, Ntry=30,
-                               center=True, gamma=1e-6)
+                          center=True, gamma=1e-6)
     print(T7)
     embeddings["Un-RT(A)LDA"] = {"T": T7, "W": W7, "G": G7}
 
     # Un-TRLDA
     print("\nRunning Un-TR(A)LDA...")
-    n_clusters = 3
-    Npc = 200
     T8, G8, W8, _ = un_trlda_a(data, n_clusters, Npc=Npc, Ninit=100, tol=1e-6, max_iter=500, Ntry=30,
-                               center=True)
+                             center=True)
     print(T8)
     embeddings["Un-TR(A)LDA"] = {"T": T8, "W": W8, "G": G8}
 
     # sDAPC
     print("\nRunning sDAPC...")
-    sdapc_results, _ = sdapc(data, labels=None, prop_pc_var=0.5, max_n_clust=5, n_pca_min=50, n_pca_max=300,
-                             n_pca_interval=50)
+    sdapc_results,_ = sdapc(data, labels=None, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100,
+                          n_pca_interval=10)
     embeddings["Semisupervised-DAPC"] = sdapc_results["Semisupervised-DAPC"]
 
-    sdapc_results, _ = sdapc(data, labels=obs_labels, prop_pc_var=0.5, max_n_clust=5, n_pca_min=50, n_pca_max=300,
-                             n_pca_interval=50)
+    sdapc_results,_ = sdapc(data, labels=labels, prop_pc_var=0.5, max_n_clust=6, n_pca_min=10, n_pca_max=100, n_pca_interval=10)
 
     embeddings["Supervised-DAPC"] = sdapc_results["Supervised-DAPC"]
 
-    predicted_labels(embeddings, samples, filename=f"{base}.csv")
     # Call plot_embeddings on simulated data
     print("Plotting embeddings...")
     plot_embedded_clusters(embeddings, labels, filename=f"{base}_da.png")
-
     plot_pca_clusters(embeddings, data, labels, filename=f"{base}_pca.png")
 
     # Compute clustering performance metrics
@@ -140,44 +119,8 @@ def main():
     print_metrics(embeddings, labels, filename=f"{base}.txt")
 
 
-def vcf_to_matrix(vcf_path, popmap_path):
-    # Create an index with tabix if it doesn't exist
-    if not (os.path.exists(vcf_path + '.tbi') or os.path.exists(vcf_path + '.csi')):
-        pysam.tabix_index(vcf_path, preset='vcf')
-
-    # Read popmap to create a dictionary for individual labels
-    popmap = pd.read_csv(popmap_path, header=None, names=["ind", "pop"])
-    popmap_dict = pd.Series(popmap["pop"].values, index=popmap["ind"]).to_dict()
-
-    # Open VCF file using pysam
-    vcf = pysam.VariantFile(vcf_path)
-    samples = list(vcf.header.samples)
-    num_individuals = len(samples)
-    num_variants = sum(1 for _ in vcf.fetch())
-
-    # Initialize matrix and labels list
-    genotype_matrix = np.zeros((num_individuals, num_variants), dtype=int)
-    pop_labels = [popmap_dict.get(sample, 'Unknown') for sample in samples]
-
-    # Re-open VCF to iterate over it again
-    vcf = pysam.VariantFile(vcf_path)
-    variant_idx = 0
-    for record in vcf.fetch():
-        for ind_idx, ind in enumerate(samples):
-            sample = record.samples[ind]
-            gt = sample['GT']
-            if gt == (0, 0):
-                genotype_matrix[ind_idx, variant_idx] = 0  # Homozygous reference
-            elif gt == (0, 1) or gt == (1, 0):
-                genotype_matrix[ind_idx, variant_idx] = 1  # Heterozygous
-            elif gt == (1, 1):
-                genotype_matrix[ind_idx, variant_idx] = 2  # Homozygous alternate
-        variant_idx += 1
-
-    return genotype_matrix, pop_labels, samples
-
-
 # legend not working
+
 def plot_pca_clusters(embeddings, dataset, labels, filename="pca_clusters.png", no_pca=False):
     """
     Plot clusters in PCA space and save to a PNG file.
@@ -387,26 +330,47 @@ def print_metrics(embeddings, labels, filename="metrics_results.txt"):
     with open(filename, 'w') as f:
         f.write(results_df.to_string())
 
+def generate_synthetic_data(n_samples=1000, n_clusters=4, n_features=50,
+                            random_state=None, dispersion=1):
+    """
+    Generate synthetic data with specified number of samples, clusters, and
+    features.
 
-def predicted_labels(embeddings, samples, filename="predicted_labels.csv"):
-    results = pd.DataFrame({"ind": samples})
+    Args:
+        n_samples (int, optional): The number of samples in the generated
+                                   dataset. Defaults to 1000.
+        n_clusters (int, optional): The number of clusters in the
+                                    generated dataset. Defaults to 4.
+        n_features (int, optional): The number of features in the generated
+                                    dataset. Defaults to 50.
+        random_state (int, optional): The random seed for reproducibility.
+                                      Defaults to None.
+        dispersion (float, optional): The dispersion of the clusters. Controls
+                                      the standard deviation of the clusters.
+                                      Defaults to 1.
 
-    for method, emb in embeddings.items():
-        T = emb["T"]
-        G = emb["G"]
+    Returns:
+        tuple: A tuple containing the generated data (numpy array) and the
+               corresponding labels (numpy array).
+    """
+    # Define the minimum and maximum standard deviation for the clusters
+    min_std = 0.1
+    max_std = 1
 
-        # Ensure G is a numpy array
-        G = np.array(G)
+    # Calculate the standard deviation for the clusters based on the
+    # dispersion parameter
+    cluster_std = min_std + (max_std - min_std) * dispersion
 
-        print(f"Method: {method}, G shape: {G.shape}, Results shape: {results.shape}")
+    # Generate synthetic data with `n_clusters` clusters
+    data, labels = make_blobs(n_samples=n_samples, centers=n_clusters,
+                              n_features=n_features, random_state=random_state,
+                              cluster_std=cluster_std)
 
-        if len(G) != len(results):
-            raise ValueError(f"Length of G ({len(G)}) does not match length of results ({len(results)})")
+    # Standardize the features
+    scaler = StandardScaler()
+    data = scaler.fit_transform(data)
 
-        results[method + " Predicted Label"] = G
-
-    results.to_csv(filename, index=False)
-    print(f"Results saved to {filename}")
+    return data, labels
 
 
 if __name__ == "__main__":

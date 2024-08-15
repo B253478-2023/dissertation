@@ -1,6 +1,5 @@
+
 import pandas as pd
-from Bio.PopGen.GenePop import read
-from collections import defaultdict
 import json
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -16,87 +15,9 @@ from Methods.swulda import *
 from unrtcdlda import *
 from untrcdlda import *
 from Methods.unkfdapc import *
-def read_gene(genepop_file):
-    with open(genepop_file) as f:
-        Island_1 = read(f)
+from sdapc import *
 
-    num_individuals = sum(len(pop) for pop in Island_1.populations)
-
-    # 提取所有的locus和alleles
-    loci_alleles = defaultdict(set)
-    for pop in Island_1.populations:
-        #print('pop:', pop)
-        for ind in pop:
-            #print('ind:', ind)
-            for i, allele_pair in enumerate(ind[1]):
-                #print('i:', i)
-                #print('allele_pair:', allele_pair)
-                locus_name = f'locus{i+1}'
-                loci_alleles[locus_name].update(allele_pair)
-
-    columns = []
-    for locus, alleles in loci_alleles.items():
-        for allele in sorted(alleles):
-            columns.append(f'{locus}.{allele}')
-
-    data = pd.DataFrame(0, index=range(num_individuals), columns=columns)
-
-    pop_array = np.zeros(num_individuals, dtype=int)
-    pop_index = 0
-    # 填充数据
-    row_index = 0
-    for pop in Island_1.populations:
-        #print('pop:',pop)
-        for ind in pop:
-            #print('ind:', ind)
-            pop_array[row_index] = pop_index
-            for i, allele_pair in enumerate(ind[1]):
-                #print('allele_pair:', allele_pair)
-                locus_name = f'locus{i+1}'
-                #print('locus_name:', locus_name)
-                for allele in allele_pair:
-                    #print('allele:', allele)
-                    col_name = f'{locus_name}.{allele}'
-                    #print('col_name:', col_name)
-                    if col_name in data.columns:
-                        data.at[row_index, col_name] = 1
-            row_index += 1
-        pop_index += 1
-
-    numeric_cols = data.select_dtypes(include=['float64', 'int64']).columns
-    data[numeric_cols] = data[numeric_cols].apply(normalize)
-
-    data_array = data.values
-
-    return data_array,pop_array
-def normalize(x):
-
-    return (x - np.min(x)) / (np.max(x) - np.min(x))
-
-def main():
-    n_groups = 16
-    group_size = 30
-    labels = np.repeat(np.arange(1, n_groups + 1), group_size)
-    Islanddata = pd.read_csv('Islanddata_Qin.csv').values
-    HierIslanddata = pd.read_csv('HierIslanddata_Qin.csv').values
-    Steppingstonedata = pd.read_csv('Steppingstonedata_Qin.csv').values
-    Hiersteppingstonedata = pd.read_csv('Hiersteppingstonedata_Qin.csv').values
-
-    max_iter = 500
-    k_range =range(15,18)
-    Npc_range = [10,20,30,40,50]
-
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range,max_iter, datatype='Steppingstone', method='un_rtlda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range, max_iter, datatype='Steppingstone', method='un_trlda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range, max_iter, datatype='Steppingstone', method='swulda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range,max_iter, datatype='Steppingstone',method='un_rtcdlda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range, max_iter, datatype='Steppingstone', method='un_trcdlda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range, max_iter, datatype='Steppingstone', method='un_lda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range,max_iter, datatype='Steppingstone',method='un_rtalda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range, max_iter, datatype='Steppingstone', method='un_tralda')
-    grid_search_clustering(Steppingstonedata, labels, k_range, Npc_range, max_iter, datatype='Steppingstone', method='un_kfdapc')
-
-def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='Island', method='un_rtlda', n_splits=5):
+def grid_search_clustering_k(data, labels, k_range, Npc_range, max_iter, datatype='Island', method='un_rtlda', n_splits=5):
     """
     Performs a grid search over number of clusters and number of principal components with k-fold cross-validation.
 
@@ -158,7 +79,7 @@ def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='
             if avg_nmi > nmi_best_score:
                 nmi_best_score = avg_nmi
                 nmi_best_params = {'nmi best params: Npc': Npc, 'k': k, 'NMI': avg_nmi, 'ARI': avg_ari,
-                                   'Silhouette': avg_silhouette}
+                                   'Silhouette': avg_silhouette, 'fmi': avg_fmi, 'completeness': avg_completeness}
 
     with open(f'{datatype}_{method}_grid_search_results.txt', 'w') as f:
         f.write(json.dumps(nmi_best_params) + "\n")
@@ -169,7 +90,64 @@ def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,datatype='
 
     return nmi_best_params, results
 
-def test(data, labels, n_clusters, Npc, max_iter, method='un_rtlda'):
+def grid_search_clustering(data, labels, k_range, Npc_range, max_iter,obeserved_lables=None, datatype='Island', method='un_rtlda'):
+    """
+    Performs a grid search over number of clusters and number of principal components using the entire dataset.
+
+    Args:
+        data (array-like): The dataset to cluster.
+        labels (array-like): The true labels for computing evaluation metrics.
+        k_range (range): A range of values for the number of clusters.
+        Npc_range (range): A range of values for the number of principal components to retain.
+
+    Returns:
+        dict: Best parameters based on silhouette score and other metrics.
+    """
+    silhouette_best_score = -1
+    silhouette_best_params = {'nPC': None, 'k': None}
+
+    results = []
+
+    for Npc in Npc_range:
+        for k in k_range:
+            print('Npc:', Npc, 'k:', k)
+
+            # Directly test on the entire dataset
+            nmi, ari, silhouette, fmi, completeness = test(data, labels, k, Npc, max_iter, method, obeserved_lables=obeserved_lables)
+
+            results.append({
+                'Npc': Npc,
+                'k': k,
+                'NMI': nmi,
+                'ARI': ari,
+                'Silhouette': silhouette,
+                'fmi': fmi,
+                'completeness': completeness
+            })
+
+            # Update the best params based on a chosen metric, e.g., silhouette score
+            if silhouette > silhouette_best_score:
+                silhouette_best_score = silhouette
+                silhouette_best_params = {
+                    'Npc': Npc,
+                    'k': k,
+                    'NMI': nmi,
+                    'ARI': ari,
+                    'Silhouette': silhouette,
+                    'fmi': fmi,
+                    'completeness': completeness
+                }
+
+    with open(f'{datatype}_{method}_grid_search_results.txt', 'w') as f:
+        f.write(json.dumps(silhouette_best_params) + "\n")
+        f.flush()
+        for result in results:
+            f.write(json.dumps(result) + "\n")
+            f.flush()
+
+    return silhouette_best_params, results
+
+def test(data, labels, n_clusters, Npc, max_iter, method='un_rtlda',obeserved_lables=None):
 
     embeddings = {}
     # Apply Un-RTLDA and obtain the reduced-dimensional representation and cluster assignments
@@ -240,6 +218,18 @@ def test(data, labels, n_clusters, Npc, max_iter, method='un_rtlda'):
         #print(T8)
         embeddings["Un-TRLDA_A"] = {"T": T8, "W": W8, "G": G8}
 
+    elif method == 'sdapc':
+        # sDAPC
+        print("\nRunning sDAPC...")
+        sdapc_results,pca = sdapc(data, labels=obeserved_lables, prop_pc_var=0.5, max_n_clust=4, n_pca_min=2, n_pca_max=10,
+                              n_pca_interval=1)
+        embeddings["Supervised-DAPC"] = sdapc_results["Supervised-DAPC"]
+        print(pca)
+    elif method == 'semi-DAPC':
+        sdapc_results, pca = sdapc(data, labels=None, prop_pc_var=0.5, max_n_clust=4, n_pca_min=2, n_pca_max=10,
+                              n_pca_interval=1)
+        embeddings["Semisupervised-DAPC"] = sdapc_results["Semisupervised-DAPC"]
+        print(pca)
     # Call plot_embeddings on simulated data
     #print("Plotting embeddings...")
     #plot_embeddings(embeddings, data, labels, filename=f"{datetype}_maxiter={max_iter}.pdf")
@@ -363,6 +353,3 @@ def print_metrics(embeddings, labels, file_name="metrics_results.txt"):
     #    f.write(results_df.to_string())
 
     return nmi, ari, silhouette, fmi, completeness
-
-if __name__ == "__main__":
-    main()

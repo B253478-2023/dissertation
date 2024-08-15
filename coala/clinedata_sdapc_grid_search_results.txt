@@ -1,2 +1,0 @@
-{"Npc": 1, "k": 1, "NMI": 1.0, "ARI": 1.0, "Silhouette": 0.6741018097435579, "fmi": 1.0, "completeness": 1.0}
-{"Npc": 1, "k": 1, "NMI": 1.0, "ARI": 1.0, "Silhouette": 0.6741018097435579, "fmi": 1.0, "completeness": 1.0}
